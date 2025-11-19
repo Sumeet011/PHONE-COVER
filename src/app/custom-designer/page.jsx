@@ -19,7 +19,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-const API_URL ='http://localhost:3000/api';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export default function CustomDesignerPage() {
   const [uploadedImage, setUploadedImage] = useState(null);
@@ -193,8 +193,8 @@ export default function CustomDesignerPage() {
   // Upload image to backend
   const uploadImageToBackend = async (imageData) => {
     try {
-      console.log("Uploading to:", `${API_URL}/custom-design/upload`);
-      const response = await fetch(`${API_URL}/custom-design/upload`, {
+      console.log("Uploading to:", `${BACKEND_URL}/custom-design/upload`);
+      const response = await fetch(`${BACKEND_URL}/custom-design/upload`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -301,7 +301,7 @@ export default function CustomDesignerPage() {
 
       // 4. Add to cart via API
       setUploadStatus("Adding to cart...");
-      const response = await fetch(`${API_URL}/custom-design/add-to-cart`, {
+      const response = await fetch(`${BACKEND_URL}/custom-design/add-to-cart`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
