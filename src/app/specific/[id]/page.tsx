@@ -2,11 +2,13 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "../../../components/navbar/Navbar";
-import Img from "../../../../public/images/card.webp";
 import { DropdownButton } from "@/components/ui/dropdown-button-upward";
 import { QuantitySelector } from "@/components/ui/quantity-selector";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
+// Default placeholder image
+const Img = { src: '/images/card.webp' };
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 const BASE_URL = `${BACKEND_URL}/api`;

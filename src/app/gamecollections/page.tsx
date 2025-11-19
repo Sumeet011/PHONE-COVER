@@ -2,9 +2,11 @@
 
 import React, { useRef, useState } from "react";
 import localFont from "next/font/local";
-import Img from "../../../public/images/card.webp";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/navbar/Navbar";
+
+// Default placeholder image
+const Img = { src: '/images/card.webp' };
 
 
 const JersyFont = localFont({
