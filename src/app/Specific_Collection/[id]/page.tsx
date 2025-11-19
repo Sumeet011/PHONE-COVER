@@ -14,6 +14,29 @@ const JersyFont = localFont({
   display: "swap",
 });
 
+type Product = {
+  _id: string;
+  id?: string;
+  name: string;
+  image: string;
+  price: number;
+  category?: string;
+  description?: string;
+  Features?: string[];
+  material?: string;
+  level?: string;
+  type?: string;
+};
+
+type Collection = {
+  _id: string;
+  name: string;
+  description?: string;
+  heroImage?: string;
+  Products?: Product[];
+  Features?: string[];
+};
+
 const Specific_Collection = () => {
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const router = useRouter();
@@ -60,16 +83,16 @@ const Specific_Collection = () => {
 
         if (result.success && result.data) {
           console.log("Setting collection data:", result.data);
-          setCollectionData(result.data);
+          setCollection(result.data);
 
           if (result.data.Products && Array.isArray(result.data.Products)) {
             console.log("Products found:", result.data.Products);
-            setDefaultItems(result.data.Products);
+            setProducts(result.data.Products);
           }
         } else if (result.Products) {
           console.log("Setting products directly:", result.Products);
-          setDefaultItems(result.Products);
-          setCollectionData(result);
+          setProducts(result.Products);
+          setCollection(result);
         }
       } catch (error) {
         console.error("Error fetching collection:", error);
@@ -120,18 +143,18 @@ const Specific_Collection = () => {
       []
     );
 
-  const currentCard = useMemo(
-    () => defaultItems[currentCardIndex] || defaultItems[0],
-    [defaultItems, currentCardIndex]
+  const currentProduct = useMemo(
+    () => products[currentCardIndex] || products[0],
+    [products, currentCardIndex]
   );
 
-  const gameInfo = useMemo(
+  const collectionInfo = useMemo(
     () => ({
-      title: collectionData?.name || "Phone Wraps Collection",
+      title: collection?.name || "Phone Wraps Collection",
       description:
-        collectionData?.description ||
+        collection?.description ||
         "Transform your device with our premium collection",
-      features: collectionData?.Features || [
+      features: collection?.Features || [
         "Premium Vinyl Material",
         "Bubble-Free Installation",
         "Residue-Free Removal",
@@ -140,7 +163,7 @@ const Specific_Collection = () => {
       ],
       compatibility: "Compatible with all major phone models",
     }),
-    [collectionData]
+    [collection]
   );
 
   // ALL CALLBACKS
@@ -209,7 +232,7 @@ const Specific_Collection = () => {
       const cartItem = {
         type: "collection",
         productId: collectionId,
-        price: currentCard?.price || 0,
+        price: currentProduct?.price || 0,
         quantity: quantity || 1,
         selectedBrand: selectedBrand,
         selectedModel: selectedModel,
@@ -234,7 +257,7 @@ const Specific_Collection = () => {
       toast.dismiss(loadingToast);
 
       if (result.success) {
-        toast.success(`✅ ${quantity}x ${gameInfo.title} added to cart!`, {
+        toast.success(`✅ ${quantity}x ${collectionInfo.title} added to cart!`, {
           position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,
@@ -267,7 +290,7 @@ const Specific_Collection = () => {
         draggable: true,
       });
     }
-  }, [selectedBrand, selectedModel, quantity, collectionId, currentCard, gameInfo, router]);
+  }, [selectedBrand, selectedModel, quantity, collectionId, currentProduct, collectionInfo, router]);
 
   // NOW CONDITIONAL RETURNS AFTER ALL HOOKS
   if (loading) {
@@ -281,7 +304,7 @@ const Specific_Collection = () => {
     );
   }
 
-  if (!loading && defaultItems.length === 0) {
+  if (!loading && products.length === 0) {
     return (
       <>
         <Navbar />
@@ -300,34 +323,18 @@ const Specific_Collection = () => {
       <Navbar />
 
       {/* Hero Banner Image */}
-      {collectionData?.heroImage && (
-        <div className="w-full h-[200px] md:h-[300px] lg:h-[400px] overflow-hidden relative">
+      {collection?.heroImage && (
+        <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] mb-8">
           <img
-            src={collectionData.heroImage}
-            alt={gameInfo.title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/30 to-black/70"></div>
-          <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
-            <h1
-              className={`${JersyFont.className} text-[#9AE600] text-4xl md:text-6xl lg:text-7xl`}
-            >
-              {gameInfo.title}
-            </h1>
-            <p className="text-white/80 mt-2 text-sm md:text-base max-w-2xl">
-              {gameInfo.description}
-            </p>
-          </div>
-        </div>
-      )}
+            src={collection.heroImage}
 
       {/* Title (only show if no hero image) */}
-      {!collectionData?.heroImage && (
+      {!collection?.heroImage && (
         <div className="w-full flex justify-center items-center mt-5">
           <h1
             className={`${JersyFont.className} text-[#9AE600] text-5xl md:text-7xl mt-6 -mb-6`}
           >
-            {gameInfo.title}
+            {collectionInfo.title}
           </h1>
         </div>
       )}
@@ -336,7 +343,7 @@ const Specific_Collection = () => {
       <div className="w-full flex justify-center items-center pb-10">
         <div className="w-full relative h-[350px] sm:h-[400px] md:h-[500px] lg:h-[600px]">
           <CircularGallery
-            items={defaultItems}
+            items={products}
             bend={3}
             textColor="#ffffff"
             borderRadius={0.05}
@@ -387,14 +394,14 @@ const Specific_Collection = () => {
               </div>
 
               <p className="text-gray-300 leading-relaxed mb-4">
-                {currentCard?.description || "No description available"}
+                {currentProduct?.description || "No description available"}
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-semibold text-white mb-2">Features:</h4>
                   <ul className="space-y-1">
-                    {(currentCard?.Features || []).map(
+                    {(currentProduct?.Features || []).map(
                       (feature: string, index: number) => (
                         <li
                           key={index}
@@ -410,13 +417,13 @@ const Specific_Collection = () => {
                 <div>
                   <h4 className="font-semibold text-white mb-2">Price:</h4>
                   <p className="text-[#9AE600] font-medium text-2xl">
-                    ₹{currentCard?.price || "N/A"}
+                    ₹{currentProduct?.price || "N/A"}
                   </p>
                   <h4 className="font-semibold text-white mb-2 mt-4">
                     Material:
                   </h4>
                   <p className="text-gray-400">
-                    {currentCard?.material || "N/A"}
+                    {currentProduct?.material || "N/A"}
                   </p>
                 </div>
               </div>
@@ -429,7 +436,7 @@ const Specific_Collection = () => {
           <h3 className="text-xl font-bold text-white mb-4">
             About This Collection
           </h3>
-          <p className="text-gray-300 mb-4">{gameInfo.description}</p>
+          <p className="text-gray-300 mb-4">{collectionInfo.description}</p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -437,7 +444,7 @@ const Specific_Collection = () => {
                 Collection Features:
               </h4>
               <ul className="space-y-2">
-                {gameInfo.features.map((feature: any, index: any) => (
+                {collectionInfo.features.map((feature: any, index: any) => (
                   <li
                     key={index}
                     className="text-gray-400 text-sm flex items-center"
@@ -450,7 +457,7 @@ const Specific_Collection = () => {
             </div>
             <div>
               <h4 className="font-semibold text-white mb-3">Compatibility:</h4>
-              <p className="text-gray-400 text-sm">{gameInfo.compatibility}</p>
+              <p className="text-gray-400 text-sm">{collectionInfo.compatibility}</p>
             </div>
           </div>
         </div>

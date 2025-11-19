@@ -10,7 +10,7 @@ import 'react-toastify/dist/ReactToastify.css';
 // Default placeholder image
 const Img = { src: '/images/card1.webp' };
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://phone-wraps-backend.onrender.com";
 const BASE_URL = `${BACKEND_URL}/api`;
 
 type Drink = {
