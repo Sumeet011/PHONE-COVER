@@ -13,14 +13,6 @@ const FiltersContent = ({ onFilterChange }) => {
 
   // Filters based on your Product MongoDB schema
   const filtersData = {
-    Category: [
-      "Phone Case",
-      "Phone Skin",
-      "Screen Protector",
-      "Full Body Wrap",
-      "Camera Protector",
-      "Combo Pack"
-    ],
     Material: [
       "TPU",
       "Silicone",

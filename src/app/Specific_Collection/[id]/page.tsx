@@ -323,13 +323,17 @@ const Specific_Collection = () => {
       <Navbar />
 
       {/* Hero Banner Image */}
-      {collection?.heroImage && (
+      {/* Hero Banner Image */}
+      {collection?.heroImage ? (
         <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] mb-8">
           <img
             src={collection.heroImage}
-
-      {/* Title (only show if no hero image) */}
-      {!collection?.heroImage && (
+            alt={collection.name || "Collection Hero"}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      ) : (
+        /* Title (only show if no hero image) */
         <div className="w-full flex justify-center items-center mt-5">
           <h1
             className={`${JersyFont.className} text-[#9AE600] text-5xl md:text-7xl mt-6 -mb-6`}
@@ -383,13 +387,13 @@ const Specific_Collection = () => {
                 <h2
                   className={`${JersyFont.className} text-3xl text-[#9AE600]`}
                 >
-                  {currentCard?.name || "Product Name"}
+                  {currentProduct?.name || "Product Name"}
                 </h2>
                 <span className="bg-[#9AE600] text-black px-3 py-1 rounded-full text-sm font-bold">
-                  {currentCard?.level || "N/A"}
+                  {currentProduct?.level || "N/A"}
                 </span>
                 <span className="bg-gray-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-                  {currentCard?.type || "Standard"}
+                  {currentProduct?.type || "Standard"}
                 </span>
               </div>
 

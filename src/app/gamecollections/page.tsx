@@ -167,7 +167,7 @@ export default function GameCollections() {
                   onClick={() => router.push(`/Specific_Collection/${collection._id}`)}
                   className="group cursor-pointer relative bg-[#1a1816] rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-transform transform hover:scale-105 duration-300 flex flex-col h-[270px] w-[180px] snap-start"
                 >
-                  <div className="mouse-pointer relative overflow-hidden rounded-xl h-[200px]">
+                  <div className="mouse-pointer relative overflow-hidden rounded-xl h-[220px]">
                     <img
                       src={collection.heroImage || collection.image || Img.src}
                       alt={collection.name}
@@ -179,9 +179,6 @@ export default function GameCollections() {
                     <h2 className="text-base md:text-lg font-semibold leading-tight line-clamp-2">
                       {collection.name}
                     </h2>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {collection.Products?.length || 0} Products
-                    </p>
                   </div>
 
                   <div className="absolute bottom-3 right-3 w-6 h-6 rounded-full bg-white group-hover:bg-lime-400 flex items-center justify-center">

@@ -26,7 +26,6 @@ type Drink = {
 
 type FilterState = {
   Type?: string[];
-  Category?: string[];
   Material?: string[];
   Finish?: string[];
   "Design Type"?: string[];
@@ -106,11 +105,7 @@ const Drinks = () => {
   }, []);
 
   // Apply filters whenever activeFilters change
-  useEffect(() => {
-    applyFilters();
-  }, [activeFilters, products]);
-
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...products];
 
     // Apply Type filter (gaming/Standard)
@@ -120,12 +115,6 @@ const Drinks = () => {
       );
     }
 
-    // Apply Category filter
-    if (activeFilters.Category && activeFilters.Category.length > 0) {
-      filtered = filtered.filter((product: any) =>
-        activeFilters.Category!.includes(product.category)
-      );
-    }
 
     // Apply Material filter
     if (activeFilters.Material && activeFilters.Material.length > 0) {
@@ -171,11 +160,14 @@ const Drinks = () => {
     }
 
     setFilteredProducts(filtered);
-  };
+  }, [products, activeFilters]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   const handleFilterChange = (filters: FilterState) => {
     setActiveFilters(filters);
-    applyFilters();
   };
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);

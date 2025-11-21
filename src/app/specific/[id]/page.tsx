@@ -6,6 +6,7 @@ import { DropdownButton } from "@/components/ui/dropdown-button-upward";
 import { QuantitySelector } from "@/components/ui/quantity-selector";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Footer from "@/components/homeCards/Footer";
 
 // Default placeholder image
 const Img = { src: '/images/card1.webp' };
@@ -26,11 +27,18 @@ type Drink = {
 
 const ProductCard: React.FC<{ drink: Drink; href: string }> = ({ drink, href }) => {
   return (
-    <a
-      href={href}
-      className="group relative bg-[#1a1816] rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-transform transform hover:scale-105 duration-300 flex flex-col h-[230px] w-[150px] min-[370px]:w-[180px] min-[370px]:h-[270px] md:h-[300px] md:w-[230px] snap-start"
-    >
-      <div className="relative overflow-hidden rounded-xl h-[300px]">
+   <a
+  href={href}
+  className="mr-4 group relative bg-[#1a1816] rounded-2xl p-4 text-white shadow-lg 
+  hover:shadow-xl transition-transform transform hover:scale-105 duration-300 
+  flex flex-col
+  h-[230px] w-[150px] 
+  min-[370px]:w-[180px] min-[370px]:h-[270px]
+  min-[730px]:h-[350px] min-[730px]:w-[230px]
+  snap-start"
+>
+
+      <div className="relative overflow-hidden rounded-xl h-[350px]">
         <img
           src={drink.image}
           alt={drink.name}
@@ -322,17 +330,18 @@ const ProductDetails = () => {
           Home / Products / <span className="text-white">{drink.name}</span>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-10">
-          {/* Image Section */}
-          <div className="self-start lg:w-1/2 bg-[#13120f] p-6 rounded-md">
-            <div className="aspect-square rounded-xl overflow-hidden">
-              <img
-                src={drink.image || Img.src}
-                alt={drink.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          </div>
+        <div className="flex flex-col items-center lg:items-start lg:flex-row gap-10">
+  {/* Image Section */}
+  <div className="w-full lg:w-1/2 p-6 rounded-md flex justify-center">
+    <div className="h-[390px] rounded-xl overflow-hidden">
+      <img
+        src={drink.image || Img.src}
+        alt={drink.name}
+        className="w-full h-full object-cover"
+      />
+    </div>
+  </div>
+
 
           {/* Info Section */}
           <div className="lg:w-1/2 space-y-10 text-base leading-relaxed text-white">
@@ -458,18 +467,28 @@ const ProductDetails = () => {
         </div>
       </div>
 
-      <div className="overflow-hidden flex justify-center max-w-full xl:ml-40 mx-auto px-6 py-12">
+      <div className="overflow-hidden flex justify-center max-w-full xl:ml-40 mx-auto pb-6 px-6 ">
         <div className="mt-16">
           <h2 className="text-2xl font-bold mb-6 text-white">
             Related Products
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-8 mr-2">
+          <div
+  className="
+    grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4
+    gap-x-8 mr-2
+  "
+>
+
+
             {relatedDrinks.map((d) => (
               <ProductCard key={d.id} drink={d} href={`/specific/${d.id}`} />
             ))}
           </div>
         </div>
+        
+        
       </div>
+      <Footer />
     </div>
   );
 };
