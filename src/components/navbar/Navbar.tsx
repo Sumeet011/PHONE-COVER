@@ -76,7 +76,7 @@ const Navbar: React.FC = () => {
   const navItems: { label: string; shortLabel?: string; path: string }[] = [
     { label: "Home", path: "/" },
     { label: "Game Collection", shortLabel: "Game", path: "/gamecollections" },
-    { label: "All ", shortLabel: "All", path: "/All" },
+    { label: "Collections", shortLabel: "Collections", path: "/collections" },
     { label: "Orders", path: "/my_orders" },
     { label: "Contact", path: "/contact" },
     { label: "LeaderBoard", path: "/leaderboard" },

@@ -87,15 +87,37 @@ const Drinks = () => {
   const [activeFilters, setActiveFilters] = useState<FilterState>({});
 
   useEffect(() => {
-    fetch(`${BACKEND_URl}/api/products`) // Updated to port 3000
-      .then((res) => res.json())
-      .then((data) => {
-        const productsList = data.items || [];
-        //choose only products with type Standard
-        const filtered = productsList.filter((product: any) => product.type === "Standard");
+    // Fetch all collections and products
+    Promise.all([
+      fetch(`${BACKEND_URl}/api/collections?type=normal`).then(res => res.json()),
+      fetch(`${BACKEND_URl}/api/products`).then(res => res.json())
+    ])
+      .then(([collectionsData, productsData]) => {
+        const collections = collectionsData.items || [];
+        const allProducts = productsData.items || [];
+
+        // Get all product IDs that are in normal/standard collections
+        const normalCollectionProductIds = new Set<string>();
+        collections.forEach((collection: any) => {
+          if (collection.Products && Array.isArray(collection.Products)) {
+            collection.Products.forEach((productId: any) => {
+              // Handle both ObjectId and populated product objects
+              const id = typeof productId === 'string' ? productId : productId._id || productId.id;
+              normalCollectionProductIds.add(id);
+            });
+          }
+        });
+
+        // Filter products that are in normal collections
+        const filtered = allProducts.filter((product: any) => 
+          normalCollectionProductIds.has(product._id || product.id)
+        );
+
+        console.log('Normal collections found:', collections.length);
+        console.log('Products in normal collections:', filtered.length);
 
         setProducts(filtered);
-        setFilteredProducts(filtered); // Initially show all products
+        setFilteredProducts(filtered);
         setLoading(false);
       })
       .catch((err) => {
