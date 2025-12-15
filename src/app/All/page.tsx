@@ -81,7 +81,7 @@ const ProductCard: React.FC<{ drink: Drink }> = ({ drink }) => {
 
 
 
-const Drinks = () => {
+const DrinksContent = () => {
   const [products, setProducts] = useState<Drink[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Drink[]>([]);
   const [loading, setLoading] = useState(true);
@@ -364,6 +364,18 @@ const Drinks = () => {
         </main>
       </div>
     </div>
+  );
+};
+
+const Drinks = () => {
+  return (
+    <Suspense fallback={
+      <div className="bg-[#090701] min-h-screen flex items-center justify-center">
+        <FaSpinner className="animate-spin text-[#9AE600] text-4xl" />
+      </div>
+    }>
+      <DrinksContent />
+    </Suspense>
   );
 };
 

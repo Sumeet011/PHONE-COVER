@@ -327,8 +327,8 @@ const CartPage = () => {
 
           const applyResult = await applyResponse.json();
           
-        totalDiscountAmount = appliedCoupons.reduce((sum, coupon) => sum + coupon.discountAmount, 0);
-  const totalCost = subtotal - totalDplyResult.data.appliedCoupons);
+          if (applyResult.success) {
+            setAppliedCoupons(applyResult.data.appliedCoupons);
             setCouponCode('');
             toast.success(`Coupon applied! ${validateResult.coupon.discountPercentage}% off`);
           } else {
@@ -376,8 +376,8 @@ const CartPage = () => {
   const totalItems = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const subtotal = cartItems.map(item => item.price * item.quantity).reduce((acc, price) => acc + price, 0);
   const shipping = subtotal > 0 ? 5 : 0;
-  const discountAmount = (subtotal * discountPercent) / 100;
-  const totalCost = subtotal - discountAmount + shipping;
+  const totalDiscountAmount = appliedCoupons.reduce((sum, coupon) => sum + coupon.discountAmount, 0);
+  const totalCost = subtotal - totalDiscountAmount + shipping;
 
   if (loading) {
     return (
