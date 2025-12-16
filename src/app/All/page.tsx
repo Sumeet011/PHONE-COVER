@@ -105,10 +105,13 @@ const DrinksContent = () => {
             setCollectionName(collectionData.data.name);
           }
         } else {
-          // Fetch all normal collections
-          const collectionsRes = await fetch(`${BACKEND_URl}/api/collections?type=normal`);
+          // Fetch all collections (both gaming and normal)
+          const collectionsRes = await fetch(`${BACKEND_URl}/api/collections`);
           const collectionsData = await collectionsRes.json();
-          normalCollections = collectionsData.items || [];
+          const allCollections = collectionsData.items || [];
+          
+          // Filter out gaming collections
+          normalCollections = allCollections.filter((col: any) => col.type !== 'gaming');
           setCollectionName('');
         }
 
