@@ -2,7 +2,9 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import localFont from "next/font/local";
-import Img from "../../../public/images/card1.webp";
+import Img from "../../../public/images/card.webp";
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://phone-wraps-backend.onrender.com";
 
 const JersyFont = localFont({
   src: "../../../public/fonts/jersey-10-latin-400-normal.woff2",
@@ -10,60 +12,23 @@ const JersyFont = localFont({
 });
 
 type Drink = {
-  id: number;
+  id: string;
   name: string;
   image: string;
   price: number;
+  type?: string;
+  category?: string;
+  material?: string;
+  finish?: string;
+  design?: {
+    type?: string;
+  };
 };
-
-const sampleDrinks: Drink[] = [
-  { id: 1, name: "Caramel Latte", image: Img.src, price: 199 },
-  { id: 2, name: "Iced Americano", image: Img.src, price: 149 },
-  { id: 3, name: "Matcha Frappe", image: Img.src, price: 229 },
-  { id: 4, name: "Vanilla Cold Brew", image: Img.src, price: 189 },
-  { id: 5, name: "Mocha Delight", image: Img.src, price: 209 },
-  { id: 6, name: "Hazelnut Cappuccino", image: Img.src, price: 219 },
-  { id: 7, name: "Cinnamon Spice", image: Img.src, price: 179 },
-  { id: 8, name: "Coconut Macchiato", image: Img.src, price: 249 },
-  { id: 9, name: "Almond Breve", image: Img.src, price: 239 },
-  { id: 10, name: "Caramel Latte", image: Img.src, price: 199 },
-  { id: 11, name: "Iced Americano", image: Img.src, price: 149 },
-  { id: 12, name: "Matcha Frappe", image: Img.src, price: 229 },
-  { id: 13, name: "Vanilla Cold Brew", image: Img.src, price: 189 },
-  { id: 14, name: "Mocha Delight", image: Img.src, price: 209 },
-  { id: 15, name: "Hazelnut Cappuccino", image: Img.src, price: 219 },
-  { id: 16, name: "Cinnamon Spice", image: Img.src, price: 179 },
-  { id: 17, name: "Coconut Macchiato", image: Img.src, price: 249 },
-  { id: 18, name: "Almond Breve", image: Img.src, price: 239 },
-  { id: 19, name: "Caramel Latte", image: Img.src, price: 199 },
-  { id: 20, name: "Iced Americano", image: Img.src, price: 149 },
-  { id: 21, name: "Matcha Frappe", image: Img.src, price: 229 },
-  { id: 22, name: "Vanilla Cold Brew", image: Img.src, price: 189 },
-  { id: 23, name: "Mocha Delight", image: Img.src, price: 209 },
-  { id: 24, name: "Hazelnut Cappuccino", image: Img.src, price: 219 },
-  { id: 25, name: "Cinnamon Spice", image: Img.src, price: 179 },
-  { id: 26, name: "Coconut Macchiato", image: Img.src, price: 249 },
-  { id: 27, name: "Almond Breve", image: Img.src, price: 239 },
-  { id: 28, name: "Caramel Latte", image: Img.src, price: 199 },
-  { id: 29, name: "Iced Americano", image: Img.src, price: 149 },
-  { id: 30, name: "Matcha Frappe", image: Img.src, price: 229 },
-  { id: 31, name: "Vanilla Cold Brew", image: Img.src, price: 189 },
-  { id: 32, name: "Mocha Delight", image: Img.src, price: 209 },
-  { id: 33, name: "Hazelnut Cappuccino", image: Img.src, price: 219 },
-  { id: 34, name: "Cinnamon Spice", image: Img.src, price: 179 },
-  { id: 35, name: "Coconut Macchiato", image: Img.src, price: 249 },
-  { id: 36, name: "Almond Breve", image: Img.src, price: 239 },
-  { id: 37, name: "Caramel Latte", image: Img.src, price: 199 },
-  { id: 38, name: "Iced Americano", image: Img.src, price: 149 },
-  { id: 39, name: "Matcha Frappe", image: Img.src, price: 229 },
-  { id: 40, name: "Vanilla Cold Brew", image: Img.src, price: 189 },
-  { id: 41, name: "Mocha Delight", image: Img.src, price: 209 },
-];
 
 const ProductCard: React.FC<{ drink: Drink }> = ({ drink }) => {
   return (
     <a
-      href={`/specific`}
+      href={`/specific/${drink.id}`}
       className="group relative bg-[#1a1816] rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-transform transform hover:scale-105 duration-300 flex flex-col h-[290px] w-[200px] snap-start"
     >
       <div className="relative overflow-hidden rounded-xl h-[290px]">
@@ -92,10 +57,96 @@ export default function HorizontalScrollableCards() {
 
   const [currentIndex, setCurrentIndex] = useState(1);
   const [currentIndex1, setCurrentIndex1] = useState(1);
+  const [products, setProducts] = useState<Drink[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState({
+    productsTitle: "BROWSE ALL PRODUCTS",
+    productsPerRow: 41,
+    productsRows: 2
+  });
+
+  // Fetch products from backend
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        // Fetch all collections
+        const collectionsRes = await fetch(`${BACKEND_URL}/api/collections`);
+        const collectionsData = await collectionsRes.json();
+        const allCollections = collectionsData.items || [];
+        
+        // Filter out gaming collections
+        const normalCollections = allCollections.filter((col: any) => col.type !== 'gaming');
+
+        // Fetch all products
+        const productsRes = await fetch(`${BACKEND_URL}/api/products`);
+        const productsData = await productsRes.json();
+        const allProducts = productsData.items || [];
+
+        // Get all product IDs from the collections
+        const collectionProductIds = new Set<string>();
+        normalCollections.forEach((collection: any) => {
+          if (collection.Products && Array.isArray(collection.Products)) {
+            collection.Products.forEach((productId: any) => {
+              const id = typeof productId === 'string' ? productId : productId._id || productId.id;
+              collectionProductIds.add(id);
+            });
+          }
+        });
+
+        // Filter products that are in the collections
+        const filteredProductsList = allProducts.filter((product: any) => 
+          collectionProductIds.has(product._id || product.id)
+        );
+
+        // Map products to match the Drink type expected by the component
+        const mappedProducts = filteredProductsList.map((product: any) => ({
+          id: product._id,
+          name: product.name,
+          image: product.image,
+          price: product.price,
+          type: product.type,
+          category: product.category,
+          material: product.material,
+          finish: product.finish,
+          design: product.design
+        }));
+
+        setProducts(mappedProducts);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Fetch settings from backend
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/site-settings`);
+        const data = await response.json();
+        if (data.success && data.data) {
+          setSettings({
+            productsTitle: data.data.productsTitle || "BROWSE ALL PRODUCTS",
+            productsPerRow: data.data.productsPerRow || 41,
+            productsRows: data.data.productsRows || 2
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching site settings:', error);
+      }
+    };
+
+    fetchSettings();
+  }, []);
 
   const setupScrollHandler = (
     container: HTMLDivElement | null,
-    setter: React.Dispatch<React.SetStateAction<number>>
+    setter: (value: number) => void,
+    itemCount: number
   ) => {
     if (!container) return;
 
@@ -107,10 +158,10 @@ export default function HorizontalScrollableCards() {
   const scrollWidth = container.scrollWidth;
 
   // approximate last visible card
-  const cardWidth = scrollWidth / sampleDrinks.length;
+  const cardWidth = scrollWidth / itemCount;
   const lastVisibleIndex = Math.ceil((scrollLeft + containerWidth) / cardWidth);
 
-  setter(Math.min(Math.max(lastVisibleIndex, 1), sampleDrinks.length));
+  setter(Math.min(Math.max(lastVisibleIndex, 1), itemCount));
 };
 
 
@@ -124,17 +175,55 @@ export default function HorizontalScrollableCards() {
     };
   };
 
+  // Get products to display based on settings
+  const displayProducts = products.slice(0, settings.productsPerRow);
+  
+  // Create array of row refs
+  const rowRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const [rowIndices, setRowIndices] = useState<number[]>([]);
+
+  // Initialize row indices
   useEffect(() => {
-    const cleanup1 = setupScrollHandler(containerRef.current, setCurrentIndex);
-    const cleanup2 = setupScrollHandler(
-      containerRef1.current,
-      setCurrentIndex1
-    );
+    setRowIndices(Array(settings.productsRows).fill(1));
+  }, [settings.productsRows]);
+
+  // Setup scroll handlers for all rows
+  useEffect(() => {
+    const cleanups: Array<(() => void) | undefined> = [];
+    
+    rowRefs.current.forEach((ref, index) => {
+      if (ref) {
+        const cleanup = setupScrollHandler(ref, (value) => {
+          setRowIndices(prev => {
+            const newIndices = [...prev];
+            newIndices[index] = value;
+            return newIndices;
+          });
+        }, displayProducts.length);
+        cleanups.push(cleanup);
+      }
+    });
+
     return () => {
-      cleanup1 && cleanup1();
-      cleanup2 && cleanup2();
+      cleanups.forEach(cleanup => cleanup && cleanup());
     };
-  }, []);
+  }, [displayProducts.length, settings.productsRows]);
+
+  if (loading) {
+    return (
+      <div className="w-full text-white flex justify-center items-center py-20">
+        <div className="text-xl">Loading products...</div>
+      </div>
+    );
+  }
+
+  if (products.length === 0) {
+    return (
+      <div className="w-full text-white flex justify-center items-center py-20">
+        <div className="text-xl">No products found</div>
+      </div>
+    );
+  }
 
   return (
     <div className={`w-full text-white`}>
@@ -152,85 +241,51 @@ export default function HorizontalScrollableCards() {
     lg:text-8xl
     text-center     /* optional: centers the text horizontally */
   `}>
-          BROWSE ALL PRODUCTS
+          {settings.productsTitle}
         </h1>
 
       </div>
 
-      <div className="relative">
-        {/* Horizontal scroll container */}
+      {/* Render rows dynamically based on productsRows setting */}
+      {Array.from({ length: settings.productsRows }).map((_, rowIndex) => (
+        <div key={rowIndex} className="relative">
+          {/* Horizontal scroll container */}
+          <div
+            ref={(el) => { rowRefs.current[rowIndex] = el; }}
+            className="flex grid-cols-2 ml-3 mr-0 md:grid-cols-3 xl:grid-cols-4 gap-2 xl:gap-8 xl:ml-30 xl:mr-30 overflow-x-auto no-scrollbar snap-x snap-mandatory px-2 py-2 scrollbar-thin scrollbar-thumb-rounded scrollbar-track-rounded"
+            style={{ scrollSnapType: "x mandatory" }}
+            role="list"
+          >
+            {displayProducts.map((d) => (
+              <div role="listitem" key={`row${rowIndex}-${d.id}`} className="snap-start">
+                <ProductCard drink={d} />
+              </div>
+            ))}
+            <style jsx>{`
+              /* Hide scrollbar for Chrome, Safari and Opera */
+              .no-scrollbar::-webkit-scrollbar {
+                display: none;
+                width: 0;
+                height: 0;
+              }
 
-        <div
-          ref={containerRef}
-          className="flex grid-cols-2 ml-3 mr-0 md:grid-cols-3 xl:grid-cols-4 gap-2 xl:gap-8 xl:ml-30 xl:mr-30 overflow-x-auto no-scrollbar snap-x snap-mandatory px-2 py-2 scrollbar-thin scrollbar-thumb-rounded scrollbar-track-rounded"
-          style={{ scrollSnapType: "x mandatory" }}
-          role="list"
-        >
-          {sampleDrinks.map((d) => (
-            <div role="listitem" key={d.id} className="snap-start">
-              <ProductCard drink={d} />
+              /* Hide scrollbar for IE, Edge and Firefox */
+              .no-scrollbar {
+                -ms-overflow-style: none; /* IE and Edge */
+                scrollbar-width: none; /* Firefox */
+              }
+            `}</style>
+          </div>
+
+          {/* Scroll Position Indicator */}
+          <div className="flex justify-center mt-2">
+            <div className="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full text-sm text-gray-600 dark:text-gray-400 font-medium">
+              {rowIndices[rowIndex] || 1} / {displayProducts.length}
             </div>
-          ))}
-          <style jsx>{`
-            /* Hide scrollbar for Chrome, Safari and Opera */
-            .no-scrollbar::-webkit-scrollbar {
-              display: none;
-              width: 0;
-              height: 0;
-            }
-
-            /* Hide scrollbar for IE, Edge and Firefox */
-            .no-scrollbar {
-              -ms-overflow-style: none; /* IE and Edge */
-              scrollbar-width: none; /* Firefox */
-            }
-          `}</style>
-        </div>
-
-        {/* Scroll Position Indicator */}
-        <div className="flex justify-center mt-2">
-          <div className="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full text-sm text-gray-600 dark:text-gray-400 font-medium">
-            {currentIndex} / {sampleDrinks.length}
           </div>
         </div>
-      </div>
-      <div className="relative">
-        {/* Horizontal scroll container */}
+      ))}
 
-        <div
-          ref={containerRef1}
-          className="flex grid-cols-2 ml-3 mr-0 md:grid-cols-3 xl:grid-cols-4 gap-2 xl:gap-8 xl:ml-30 xl:mr-30 overflow-x-auto no-scrollbar snap-x snap-mandatory px-2 py-2 scrollbar-thin scrollbar-thumb-rounded scrollbar-track-rounded"
-          style={{ scrollSnapType: "x mandatory" }}
-          role="list"
-        >
-          {sampleDrinks.map((d) => (
-            <div role="listitem" key={d.id} className="snap-start">
-              <ProductCard drink={d} />
-            </div>
-          ))}
-          <style jsx>{`
-            /* Hide scrollbar for Chrome, Safari and Opera */
-            .no-scrollbar::-webkit-scrollbar {
-              display: none;
-              width: 0;
-              height: 0;
-            }
-
-            /* Hide scrollbar for IE, Edge and Firefox */
-            .no-scrollbar {
-              -ms-overflow-style: none; /* IE and Edge */
-              scrollbar-width: none; /* Firefox */
-            }
-          `}</style>
-        </div>
-
-        {/* Scroll Position Indicator */}
-        <div className="flex justify-center mt-2">
-          <div className="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full text-sm text-gray-600 dark:text-gray-400 font-medium">
-            {currentIndex1} / {sampleDrinks.length}
-          </div>
-        </div>
-      </div>
       <div className="w-full flex justify-center items-center  ">
         <button className="bg-[#9AE600] text-black font-bold py-2 mt-2 px-4 rounded-full hover:bg-green-600 transition duration-300">
           See All

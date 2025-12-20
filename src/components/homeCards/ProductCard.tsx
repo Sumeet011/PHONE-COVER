@@ -67,17 +67,39 @@ export default function HorizontalScrollableCards() {
   const [sampleDrinks, setSampleDrinks] = useState<Drink[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [settings, setSettings] = useState({
+    collectionsTitle: "BROWSE ALL COLLECTIONS",
+    gamingCollectionsLimit: 1,
+    nonGamingCollectionsLimit: 10,
+    showGamingSection: true,
+    showNonGamingSection: true
+  });
 
   useEffect(() => {
-    const fetchDrinks = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         
-        // Fetch gaming and normal collections
-        const [gamingRes, normalRes] = await Promise.all([
+        // Fetch site settings and collections in parallel
+        const [settingsRes, gamingRes, normalRes] = await Promise.all([
+          fetch(`${BACKEND_URL}/api/site-settings`),
           fetch(`${BACKEND_URL}/api/collections?type=gaming`),
           fetch(`${BACKEND_URL}/api/collections?type=normal`)
         ]);
+        
+        // Handle settings
+        if (settingsRes.ok) {
+          const settingsData = await settingsRes.json();
+          if (settingsData.success && settingsData.data) {
+            setSettings({
+              collectionsTitle: settingsData.data.collectionsTitle,
+              gamingCollectionsLimit: settingsData.data.gamingCollectionsLimit,
+              nonGamingCollectionsLimit: settingsData.data.nonGamingCollectionsLimit,
+              showGamingSection: settingsData.data.showGamingSection,
+              showNonGamingSection: settingsData.data.showNonGamingSection
+            });
+          }
+        }
         
         if (!gamingRes.ok || !normalRes.ok) {
           throw new Error('Failed to fetch collections');
@@ -89,11 +111,15 @@ export default function HorizontalScrollableCards() {
         const gamingCollections = gamingData.items || [];
         const normalCollections = normalData.items || [];
         
-        // Take first gaming collection and all normal collections
-        const collections = [
-          ...(gamingCollections.length > 0 ? [gamingCollections[0]] : []),
-          ...normalCollections
-        ];
+        // Use settings to determine how many collections to show
+        const gamingToShow = settings.showGamingSection 
+          ? gamingCollections.slice(0, settings.gamingCollectionsLimit)
+          : [];
+        const normalToShow = settings.showNonGamingSection
+          ? normalCollections.slice(0, settings.nonGamingCollectionsLimit)
+          : [];
+        
+        const collections = [...gamingToShow, ...normalToShow];
         
         // Map collections to match the Drink type
         const mappedCollections = collections.map((collection: any) => ({
@@ -115,7 +141,7 @@ export default function HorizontalScrollableCards() {
       }
     };
 
-    fetchDrinks();
+    fetchData();
   }, []);
 
   const scrollBy = (dir: "left" | "right") => {
@@ -132,7 +158,7 @@ export default function HorizontalScrollableCards() {
       <div className="w-full text-white">
         <div className="flex items-center justify-center mb-4">
           <h1 className={`${JersyFont.className} text-[#9AE600] text-3xl min-[260px]:text-4xl min-[310px]:text-5xl sm:text-7xl lg:text-8xl text-center`}>
-            BROWSE ALL COLLECTIONS
+            {settings.collectionsTitle.toUpperCase()}
           </h1>
         </div>
         <div className="flex justify-center items-center min-h-[400px]">
@@ -148,7 +174,7 @@ export default function HorizontalScrollableCards() {
       <div className="w-full text-white">
         <div className="flex items-center justify-center mb-4">
           <h1 className={`${JersyFont.className} text-[#9AE600] text-3xl min-[260px]:text-4xl min-[310px]:text-5xl sm:text-7xl lg:text-8xl text-center`}>
-            BROWSE ALL COLLECTIONS
+            {settings.collectionsTitle.toUpperCase()}
           </h1>
         </div>
         <div className="flex justify-center items-center min-h-[400px]">
@@ -164,7 +190,7 @@ export default function HorizontalScrollableCards() {
       <div className="w-full text-white">
         <div className="flex items-center justify-center mb-4">
           <h1 className={`${JersyFont.className} text-[#9AE600] text-3xl min-[260px]:text-4xl min-[310px]:text-5xl sm:text-7xl lg:text-8xl text-center`}>
-            BROWSE ALL COLLECTIONS
+            {settings.collectionsTitle.toUpperCase()}
           </h1>
         </div>
         <div className="flex justify-center items-center min-h-[400px]">
@@ -191,7 +217,7 @@ export default function HorizontalScrollableCards() {
               text-center
             `}
           >
-            BROWSE ALL COLLECTIONS
+            {settings.collectionsTitle.toUpperCase()}
           </h1>
         </div>
       </div>

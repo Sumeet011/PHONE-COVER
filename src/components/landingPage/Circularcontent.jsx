@@ -9,6 +9,7 @@ const JersyFont = localFont({
 const Circularcontent = () => {
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ;
   const [images, setImages] = useState([]);
+  const [title, setTitle] = useState('WELCOME TO MYSTERY WORLD');
 
   const defaultItems = [
       { image: `https://ik.imagekit.io/wr6ziyjiu/product1.jpg?updatedAt=1752859784998`, text: "Original" },
@@ -23,25 +24,32 @@ const Circularcontent = () => {
     ];
 
   useEffect(() => {
-    // Fetch card category images from backend
-    const fetchImages = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/design-assets?category=CIRCULAR&isActive=true`);
-        const data = await response.json();
+        // Fetch images
+        const imagesResponse = await fetch(`${BACKEND_URL}/api/design-assets?category=CIRCULAR&isActive=true`);
+        const imagesData = await imagesResponse.json();
         
-        if (data.success && data.items && data.items.length > 0) {
-          const formattedImages = data.items.map((asset, index) => ({
+        if (imagesData.success && imagesData.items && imagesData.items.length > 0) {
+          const formattedImages = imagesData.items.map((asset, index) => ({
             image: asset.imageUrl,
             text: asset.name || `Image ${index + 1}`
           }));
           setImages(formattedImages);
         }
+
+        // Fetch title
+        const settingsResponse = await fetch(`${BACKEND_URL}/api/site-settings`);
+        const settingsData = await settingsResponse.json();
+        if (settingsData.success && settingsData.data?.circularGalleryTitle) {
+          setTitle(settingsData.data.circularGalleryTitle);
+        }
       } catch (error) {
-        console.error('Error fetching design assets:', error);
+        console.error('Error fetching data:', error);
       }
     };
     
-    fetchImages();
+    fetchData();
   }, [BACKEND_URL]);
   return (
     <>
@@ -50,7 +58,7 @@ const Circularcontent = () => {
   <h1
     className={`${JersyFont.className} text-[#9AE600] text-3xl min-[290px]:text-5xl sm:text-7xl lg:text-8xl text-center pt-20`}
   >
-    WELCOME TO MYSETRY WORLD
+    {title}
   </h1>
 </div>
 

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { CardCarousel } from "../ui/card-carousel";
-import img1 from "../../../public/images/card1.webp";
+import img1 from "../../../public/images/card.webp";
 import img2 from "../../../public/images/card2.webp";
 import mobileimg from "../../../public/images/mobile.webp";
 import WrapButton from "../ui/wrap-button";
@@ -24,10 +24,10 @@ const CardCarouselParent = () => {
   ]);
 
   useEffect(() => {
-    // Fetch card category images from backend
+    // Fetch CARD category images from backend
     const fetchImages = async () => {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/design-assets?category=card&isActive=true`);
+        const response = await fetch(`${BACKEND_URL}/api/design-assets?category=CARD&isActive=true`);
         const data = await response.json();
         
         if (data.success && data.items && data.items.length > 0) {

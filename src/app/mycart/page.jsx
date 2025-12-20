@@ -20,12 +20,55 @@ const CartPage = () => {
   const [appliedCoupons, setAppliedCoupons] = useState([]);
   const [couponCode, setCouponCode] = useState('');
   const [showTooltip, setShowTooltip] = useState(null);
+  const [tooltips, setTooltips] = useState([]);
 
   // Fetch cart items on component mount
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchCartItems();
+    fetchTooltips();
   }, []);
+
+  const fetchTooltips = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/collection-tooltips`);
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        setTooltips(data.data.tooltips);
+      }
+    } catch (error) {
+      console.error('Error fetching tooltips:', error);
+      // Set default tooltips if fetch fails
+      setTooltips([
+        {
+          quantity: 1,
+          title: "⚠ Just Starting",
+          message: "Buy 5 cards to unlock the complete collection. Otherwise, a random card will be delivered."
+        },
+        {
+          quantity: 2,
+          title: "⚠ Making Progress",
+          message: "Buy 3 more to unlock the complete collection. Otherwise, a random card will be delivered."
+        },
+        {
+          quantity: 3,
+          title: "⚠ Halfway There!",
+          message: "Buy 2 more to unlock the complete collection. Otherwise, a random card will be delivered."
+        },
+        {
+          quantity: 4,
+          title: "⚠ Almost Complete",
+          message: "Buy 1 more to unlock the complete collection. Otherwise, a random card will be delivered."
+        },
+        {
+          quantity: 5,
+          title: "✓ Complete Collection!",
+          message: "You will receive all 5 cards from this collection."
+        }
+      ]);
+    }
+  };
 
   const fetchCartItems = async () => {
     try {
@@ -517,20 +560,38 @@ const CartPage = () => {
                             {showTooltip === item._id && (
                               <div className="absolute right-0 top-6 z-10 w-64 bg-gray-800 border border-gray-600 rounded-lg p-3 text-xs shadow-lg">
                                 <p className="text-white leading-relaxed">
-                                  {item.quantity >= 5 ? (
-                                    <>
-                                      <span className="text-[#9AE600] font-semibold">✓ Complete Collection!</span>
-                                      <br />
-                                      You will receive all 5 cards from this collection.
-                                    </>
-                                  ) : (
-                                    <>
-                                      <span className="text-yellow-500 font-semibold">⚠ Incomplete Collection</span>
-                                      <br />
-                                      Buy 5 cards to unlock the complete collection. 
-                                      Otherwise, a random card will be delivered.
-                                    </>
-                                  )}
+                                  {(() => {
+                                    const quantity = Math.min(item.quantity, 5);
+                                    const tooltip = tooltips.find(t => t.quantity === quantity);
+                                    
+                                    if (tooltip) {
+                                      return (
+                                        <>
+                                          <span className={`font-semibold ${item.quantity >= 5 ? 'text-[#9AE600]' : 'text-yellow-500'}`}>
+                                            {tooltip.title}
+                                          </span>
+                                          <br />
+                                          {tooltip.message}
+                                        </>
+                                      );
+                                    }
+                                    
+                                    // Fallback if tooltips not loaded
+                                    return item.quantity >= 5 ? (
+                                      <>
+                                        <span className="text-[#9AE600] font-semibold">✓ Complete Collection!</span>
+                                        <br />
+                                        You will receive all 5 cards from this collection.
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span className="text-yellow-500 font-semibold">⚠ Incomplete Collection</span>
+                                        <br />
+                                        Buy 5 cards to unlock the complete collection. 
+                                        Otherwise, a random card will be delivered.
+                                      </>
+                                    );
+                                  })()}
                                 </p>
                                 <div className="absolute -top-1 right-2 w-2 h-2 bg-gray-800 border-l border-t border-gray-600 transform rotate-45" />
                               </div>
