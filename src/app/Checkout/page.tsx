@@ -103,7 +103,9 @@ const CheckoutPage = () => {
           image: item.productDetails?.image || '',
           selectedBrand: item.selectedBrand,
           selectedModel: item.selectedModel,
-          type: item.type
+          type: item.type,
+          customDesign: item.customDesign,
+          collectionName: item.collectionName
         }));
 
         if (transformedItems.length === 0) {

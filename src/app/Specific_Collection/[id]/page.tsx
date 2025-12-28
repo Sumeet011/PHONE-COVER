@@ -124,43 +124,53 @@ const Specific_Collection = () => {
   }, [collectionId]);
 
   // ALL MEMOIZED VALUES AFTER useEffect
-  const phonebrand = useMemo(
-    () => [
-      { value: "apple", label: "Apple" },
-      { value: "samsung", label: "Samsung" },
-      { value: "google", label: "Google" },
-      { value: "oneplus", label: "OnePlus" },
-      { value: "xiaomi", label: "Xiaomi" },
-    ],
-    []
-  );
+  const [phonebrand, setPhonebrand] = useState<{ value: string; label: string }[]>([]);
+  const [modelsByBrand, setModelsByBrand] = useState<Record<string, { value: string; label: string }[]>>({});
+  const [loadingBrands, setLoadingBrands] = useState<boolean>(true);
 
-  const modelsByBrand: Record<string, { value: string; label: string }[]> =
-    useMemo(
-      () => ({
-        apple: [
-          { value: "iphone-14", label: "iPhone 14" },
-          { value: "iphone-15", label: "iPhone 15" },
-        ],
-        samsung: [
-          { value: "galaxy-s22", label: "Galaxy S22" },
-          { value: "galaxy-s23", label: "Galaxy S23" },
-        ],
-        google: [
-          { value: "pixel-7", label: "Pixel 7" },
-          { value: "pixel-8", label: "Pixel 8" },
-        ],
-        oneplus: [
-          { value: "oneplus-10", label: "OnePlus 10" },
-          { value: "oneplus-12", label: "OnePlus 12" },
-        ],
-        xiaomi: [
-          { value: "mi-11", label: "Mi 11" },
-          { value: "mi-13", label: "Mi 13" },
-        ],
-      }),
-      []
-    );
+  // Fetch phone brands from API
+  useEffect(() => {
+    const fetchPhoneBrands = async () => {
+      try {
+        setLoadingBrands(true);
+        const response = await fetch(`${BACKEND_URL}/api/phone-brands?activeOnly=true`);
+        const data = await response.json();
+
+        if (data.success) {
+          const brands = data.data.map((brand: any) => ({
+            value: brand.brandName,
+            label: brand.brandName
+          }));
+
+          const models: Record<string, { value: string; label: string }[]> = {};
+          data.data.forEach((brand: any) => {
+            models[brand.brandName] = brand.models.map((model: any) => ({
+              value: model.modelName,
+              label: model.modelName
+            }));
+          });
+
+          setPhonebrand(brands);
+          setModelsByBrand(models);
+        }
+      } catch (error) {
+        console.error('Failed to fetch phone brands:', error);
+        // Fallback to default brands
+        setPhonebrand([
+          { value: "apple", label: "Apple" },
+          { value: "samsung", label: "Samsung" },
+        ]);
+        setModelsByBrand({
+          apple: [{ value: "iphone-15", label: "iPhone 15" }],
+          samsung: [{ value: "galaxy-s23", label: "Galaxy S23" }],
+        });
+      } finally {
+        setLoadingBrands(false);
+      }
+    };
+
+    fetchPhoneBrands();
+  }, []);
 
   const currentProduct = useMemo(
     () => products[currentCardIndex] || products[0],

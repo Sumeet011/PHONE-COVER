@@ -39,55 +39,66 @@ export default function CustomDesignerPage() {
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Phone brand options
-  const phoneBrands = useMemo(
-    () => [
-      { value: "apple", label: "Apple" },
-      { value: "samsung", label: "Samsung" },
-      { value: "google", label: "Google" },
-      { value: "oneplus", label: "OnePlus" },
-      { value: "xiaomi", label: "Xiaomi" },
-    ],
-    []
-  );
+  // State for dynamic phone brands
+  const [phoneBrands, setPhoneBrands] = useState([]);
+  const [modelsByBrand, setModelsByBrand] = useState({});
+  const [loadingBrands, setLoadingBrands] = useState(true);
 
-  // Phone models by brand
-  const modelsByBrand = useMemo(
-    () => ({
-      apple: [
-        { value: "iphone-16-pro", label: "iPhone 16 Pro" },
-        { value: "iphone-16", label: "iPhone 16" },
-        { value: "iphone-15-pro", label: "iPhone 15 Pro" },
-        { value: "iphone-15", label: "iPhone 15" },
-        { value: "iphone-14-pro", label: "iPhone 14 Pro" },
-        { value: "iphone-14", label: "iPhone 14" },
-        { value: "iphone-13", label: "iPhone 13" },
-      ],
-      samsung: [
-        { value: "galaxy-s24", label: "Galaxy S24" },
-        { value: "galaxy-s23", label: "Galaxy S23" },
-        { value: "galaxy-s22", label: "Galaxy S22" },
-        { value: "galaxy-a54", label: "Galaxy A54" },
-      ],
-      google: [
-        { value: "pixel-8-pro", label: "Pixel 8 Pro" },
-        { value: "pixel-8", label: "Pixel 8" },
-        { value: "pixel-7-pro", label: "Pixel 7 Pro" },
-        { value: "pixel-7", label: "Pixel 7" },
-      ],
-      oneplus: [
-        { value: "oneplus-12", label: "OnePlus 12" },
-        { value: "oneplus-11", label: "OnePlus 11" },
-        { value: "oneplus-10-pro", label: "OnePlus 10 Pro" },
-      ],
-      xiaomi: [
-        { value: "mi-14", label: "Mi 14" },
-        { value: "mi-13", label: "Mi 13" },
-        { value: "redmi-note-13", label: "Redmi Note 13" },
-      ],
-    }),
-    []
-  );
+  // Fetch phone brands from API
+  useEffect(() => {
+    const fetchPhoneBrands = async () => {
+      try {
+        setLoadingBrands(true);
+        const response = await fetch(`${BACKEND_URL}/api/phone-brands?activeOnly=true`);
+        const data = await response.json();
+
+        if (data.success) {
+          // Transform API data to use names as values
+          const brands = data.data.map(brand => ({
+            value: brand.brandName,
+            label: brand.brandName
+          }));
+
+          const models = {};
+          data.data.forEach(brand => {
+            models[brand.brandName] = brand.models.map(model => ({
+              value: model.modelName,
+              label: model.modelName
+            }));
+          });
+
+          setPhoneBrands(brands);
+          setModelsByBrand(models);
+        }
+      } catch (error) {
+        console.error('Failed to fetch phone brands:', error);
+        // Fallback to hardcoded brands if API fails
+        setPhoneBrands([
+          { value: "apple", label: "Apple" },
+          { value: "samsung", label: "Samsung" },
+          { value: "google", label: "Google" },
+          { value: "oneplus", label: "OnePlus" },
+          { value: "xiaomi", label: "Xiaomi" },
+        ]);
+        setModelsByBrand({
+          apple: [
+            { value: "iphone-16-pro", label: "iPhone 16 Pro" },
+            { value: "iphone-16", label: "iPhone 16" },
+            { value: "iphone-15-pro", label: "iPhone 15 Pro" },
+            { value: "iphone-15", label: "iPhone 15" },
+          ],
+          samsung: [
+            { value: "galaxy-s24", label: "Galaxy S24" },
+            { value: "galaxy-s23", label: "Galaxy S23" },
+          ],
+        });
+      } finally {
+        setLoadingBrands(false);
+      }
+    };
+
+    fetchPhoneBrands();
+  }, []);
 
   const availableModels = selectedBrand ? modelsByBrand[selectedBrand] || [] : [];
 
@@ -193,8 +204,8 @@ export default function CustomDesignerPage() {
   // Upload image to backend
   const uploadImageToBackend = async (imageData) => {
     try {
-      console.log("Uploading to:", `${BACKEND_URL}/custom-design/upload`);
-      const response = await fetch(`${BACKEND_URL}/custom-design/upload`, {
+      console.log("Uploading to:", `${BACKEND_URL}/api/custom-design/upload`);
+      const response = await fetch(`${BACKEND_URL}/api/custom-design/upload`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -226,7 +237,7 @@ export default function CustomDesignerPage() {
   // Export design (download as image)
   const handleExportDesign = async () => {
     if (!uploadedImage) {
-      alert("Please upload an image first!");
+      //alert("Please upload an image first!");
       return;
     }
 
@@ -246,7 +257,7 @@ export default function CustomDesignerPage() {
       setTimeout(() => setUploadStatus(""), 2000);
     } catch (error) {
       console.error("Export error:", error);
-      alert("Failed to export design. Please try again.");
+      //alert("Failed to export design. Please try again.");
       setUploadStatus("");
     } finally {
       setIsProcessing(false);
@@ -256,13 +267,13 @@ export default function CustomDesignerPage() {
   // Add to cart
   const handleAddToCart = async () => {
     if (!uploadedImage) {
-      alert("Please upload an image first!");
+      //alert("Please upload an image first!");
       return;
     }
 
     // Validate brand and model selection
     if (!selectedBrand || !selectedModel) {
-      alert("Please select both phone brand and model!");
+      //alert("Please select both phone brand and model!");
       return;
     }
 
@@ -273,7 +284,7 @@ export default function CustomDesignerPage() {
   const userId = storedUser ? JSON.parse(storedUser).id : null;
   const isLoggedIn = Loged;
     if (!userId) {
-      alert("Please login to add items to cart!");
+      //alert("Please login to add items to cart!");
       window.location.href = "/Auth/Login";
       return;
     }
@@ -301,21 +312,25 @@ export default function CustomDesignerPage() {
 
       // 4. Add to cart via API
       setUploadStatus("Adding to cart...");
-      const response = await fetch(`${BACKEND_URL}/custom-design/add-to-cart`, {
+      const response = await fetch(`${BACKEND_URL}/api/cart/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "User-Id": userId,
         },
         body: JSON.stringify({
-          designImageUrl,
-          originalImageUrl,
-          phoneModel: `${selectedBrand}-${selectedModel}`,
-          selectedBrand: phoneBrands.find(b => b.value === selectedBrand)?.label || selectedBrand,
-          selectedModel: availableModels.find(m => m.value === selectedModel)?.label || selectedModel,
-          transform: imageTransform,
+          type: "custom-design",
+          productId: `custom-${Date.now()}`, // Unique ID for custom design
           price: 499,
           quantity: 1,
+          selectedBrand: phoneBrands.find(b => b.value === selectedBrand)?.label || selectedBrand,
+          selectedModel: availableModels.find(m => m.value === selectedModel)?.label || selectedModel,
+          customDesign: {
+            designImageUrl,
+            originalImageUrl,
+            phoneModel: `${selectedBrand}-${selectedModel}`,
+            transform: imageTransform,
+          }
         }),
       });
 
@@ -336,7 +351,7 @@ export default function CustomDesignerPage() {
       setUploadStatus("Added to cart successfully!");
       
       // Show success message
-      alert(`Custom design added to cart!\nTotal items: ${result.data.itemCount}\nTotal: ₹${result.data.total}`);
+      //alert(`Custom design added to cart!\nTotal items: ${result.data.itemCount}\nTotal: ₹${result.data.total}`);
       
       // Optionally redirect to cart
       setTimeout(() => {
@@ -348,7 +363,7 @@ export default function CustomDesignerPage() {
 
     } catch (error) {
       console.error("Add to cart error:", error);
-      alert(`Failed to add to cart: ${error.message}`);
+      //alert(`Failed to add to cart: ${error.message}`);
       setUploadStatus("");
     } finally {
       setIsProcessing(false);
@@ -493,7 +508,7 @@ export default function CustomDesignerPage() {
                 </div>
 
                 {/* Camera Module - Top layer - z-index: 50 */}
-                <div className="absolute top-8 left-8 w-[154px] h-[160px] pointer-events-none rounded-[35px] overflow-hidden  " 
+                <div className="absolute top-6 left-6 w-[154px] h-[160px] pointer-events-none rounded-[35px] overflow-hidden  " 
                      style={{ zIndex: 20 }}>
                   <img
                     src={CAMERA.src}

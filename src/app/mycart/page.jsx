@@ -96,6 +96,11 @@ const CartPage = () => {
       if (result.success) {
         console.log('Raw cart items from backend:', result.data.items);
         
+        // Load applied coupons from cart
+        if (result.data.appliedCoupons) {
+          setAppliedCoupons(result.data.appliedCoupons);
+        }
+        
         // Log items with missing product details or issues
         result.data.items.forEach(item => {
           if (!item.productDetails && item.type !== 'custom-design') {
@@ -131,7 +136,8 @@ const CartPage = () => {
           if (item.type === 'custom-design') {
             return {
               _id: item._id,
-              id: item.productId,
+              productId: item.productId, // Changed from 'id' to 'productId'
+              id: item.productId, // Keep for backward compatibility
               name: 'Custom Design',
               packSize: `${item.selectedBrand} - ${item.selectedModel}`,
               price: item.price,
@@ -148,6 +154,7 @@ const CartPage = () => {
           if (item.type === 'collection') {
             return {
               _id: item._id,
+              productId: item.productId,
               id: item.productId,
               name: item.productDetails?.name || 'Collection',
               packSize: `${item.selectedBrand} - ${item.selectedModel}`,
@@ -156,13 +163,15 @@ const CartPage = () => {
               image: item.productDetails?.image || item.productDetails?.heroImage || placeholderImage,
               selectedBrand: item.selectedBrand,
               selectedModel: item.selectedModel,
-              type: item.type
+              type: item.type,
+              collectionName: item.productDetails?.name || 'Collection'
             };
           }
           
           // Handle regular product items
           return {
             _id: item._id,
+            productId: item.productId,
             id: item.productId,
             name: item.productDetails?.name || 'Product',
             packSize: `${item.selectedBrand} - ${item.selectedModel}`,
@@ -333,6 +342,15 @@ const CartPage = () => {
       return;
     }
 
+    // Get userId first and validate
+    const userData = localStorage.getItem('USER');
+    const userId = userData ? JSON.parse(userData).id : null;
+    
+    if (!userId) {
+      toast.error("Please login to apply coupons");
+      return;
+    }
+
     try {
       // First validate the coupon
       const validateResponse = await fetch(`${BACKEND_URL}/api/coupon/validate`, {
@@ -351,32 +369,27 @@ const CartPage = () => {
 
       if (validateResult.success) {
         // Apply coupon to cart in backend
-        const userData = localStorage.getItem('USER');
-        const userId = userData ? JSON.parse(userData).id : null;
-        
-        if (userId) {
-          const applyResponse = await fetch(`${BACKEND_URL}/api/cart/coupon/apply`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'User-Id': userId
-            },
-            body: JSON.stringify({
-              code: validateResult.coupon.code,
-              discountPercentage: validateResult.coupon.discountPercentage,
-              discountAmount: validateResult.coupon.discountAmount
-            })
-          });
+        const applyResponse = await fetch(`${BACKEND_URL}/api/cart/coupon/apply`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Id': userId
+          },
+          body: JSON.stringify({
+            code: validateResult.coupon.code,
+            discountPercentage: validateResult.coupon.discountPercentage,
+            discountAmount: validateResult.coupon.discountAmount
+          })
+        });
 
-          const applyResult = await applyResponse.json();
-          
-          if (applyResult.success) {
-            setAppliedCoupons(applyResult.data.appliedCoupons);
-            setCouponCode('');
-            toast.success(`Coupon applied! ${validateResult.coupon.discountPercentage}% off`);
-          } else {
-            toast.error(applyResult.message || "Failed to apply coupon");
-          }
+        const applyResult = await applyResponse.json();
+        
+        if (applyResult.success) {
+          setAppliedCoupons(applyResult.data.appliedCoupons);
+          setCouponCode('');
+          toast.success(`Coupon applied! ${validateResult.coupon.discountPercentage}% off`);
+        } else {
+          toast.error(applyResult.message || "Failed to apply coupon");
         }
       } else {
         toast.error(validateResult.message || "Invalid coupon code");
@@ -622,6 +635,11 @@ const CartPage = () => {
                 </div>
               ))}
             </div>
+
+            {/* Debug: Log cart items before passing to OrderSummary */}
+            {console.log('🛒 CartItems in mycart before OrderSummary:', cartItems)}
+            {console.log('🎨 CustomDesign items:', cartItems.filter(i => i.type === 'custom-design'))}
+            {console.log('🎟️ Applied coupons in mycart:', appliedCoupons)}
 
             {/* Order Summary */}
             <OrderSummary

@@ -157,7 +157,16 @@ const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData,
       return;
     }
 
-    // Format items for backend - only send necessary fields
+    // Format items for backend - include all necessary fields including customDesign
+    console.log('🛒 Raw cartItems received in PaymentModal:', cartItems);
+    console.log('🎨 CartItems with customDesign field:', cartItems.map(i => ({
+      name: i.name,
+      type: i.type,
+      hasCustomDesign: !!i.customDesign,
+      customDesignKeys: i.customDesign ? Object.keys(i.customDesign) : [],
+      designImageUrl: i.customDesign?.designImageUrl
+    })));
+    
     const formattedItems = cartItems.map(item => ({
       productId: item.productId || item._id,
       name: item.name,
@@ -165,7 +174,9 @@ const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData,
       quantity: item.quantity,
       selectedBrand: item.selectedBrand || '',
       selectedModel: item.selectedModel || '',
-      type: item.type || 'product'
+      type: item.type || 'product',
+      collectionName: item.collectionName || '',
+      customDesign: item.customDesign || undefined
     }));
 
     // Format address for backend
@@ -196,6 +207,10 @@ const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData,
             address: formattedAddress,
             coupon: formData.appliedCoupons || []
           };
+          
+          console.log('📦 Complete order data being sent:', completeOrderData);
+          console.log('🎨 Items with customDesign:', formattedItems.filter(i => i.customDesign));
+          console.log('🎟️ Coupons:', formData.appliedCoupons);
           
           // Create Razorpay payment session (NOT the order yet)
           const razorpayResponse = await fetch(`${BACKEND_URL}/api/orders/razorpay`, {
