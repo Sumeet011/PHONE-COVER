@@ -25,7 +25,7 @@ const cardswipe = () => {
           setImages(formattedImages);
         }
       } catch (error) {
-        console.error('Error fetching design assets:', error);
+        // Silently handle error
       }
     };
     

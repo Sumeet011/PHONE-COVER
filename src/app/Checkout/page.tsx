@@ -23,15 +23,6 @@ interface CartItem {
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 const CheckoutPage = () => {
-  const router = useRouter();
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [appliedCoupons, setAppliedCoupons] = useState<any[]>([]);
-  const [couponCode, setCouponCode] = useState('');
-  console.log("Razorpay Key:", process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID);
-
-  // Fetch cart items on component mount
-  useEffect(() => {
     window.scrollTo(0, 0);
     
     // Load saved coupon data from cart page
@@ -44,7 +35,6 @@ const CheckoutPage = () => {
         // Only use if less than 10 minutes old
         if (timeElapsed < 10 * 60 * 1000) {
           setAppliedCoupons(couponData.appliedCoupons || []);
-          console.log('✓ Loaded saved coupons:', couponData.appliedCoupons?.length || 0);
           
           if (couponData.appliedCoupons && couponData.appliedCoupons.length > 0) {
             setTimeout(() => {
@@ -56,12 +46,11 @@ const CheckoutPage = () => {
           }
         } else {
           // Clear expired data
-          console.warn('⚠ Coupon data expired, clearing...');
           localStorage.removeItem('checkoutCoupon');
         }
       }
     } catch (error) {
-      console.error('Error loading coupon data:', error);
+      // Silently fail - non-critical
     }
     
     fetchCartItems();
@@ -120,7 +109,6 @@ const CheckoutPage = () => {
         setCartItems([]);
       }
     } catch (error) {
-      console.error('Error fetching cart items:', error);
       toast.error("Failed to load cart items");
       setCartItems([]);
     } finally {
@@ -183,7 +171,6 @@ const CheckoutPage = () => {
         toast.error(validateResult.message || "Invalid coupon code");
       }
     } catch (error) {
-      console.error('Error applying coupon:', error);
       toast.error("Failed to apply coupon");
     }
   };
@@ -212,7 +199,6 @@ const CheckoutPage = () => {
         }
       }
     } catch (error) {
-      console.error('Error removing coupon:', error);
       toast.error("Failed to remove coupon");
     }
   };

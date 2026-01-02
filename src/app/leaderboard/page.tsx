@@ -49,8 +49,7 @@ const LeaderboardPage = () => {
           setUsers(formatted);
         }
       } catch (error) {
-        console.error('Error fetching leaderboard:', error);
-      } finally {
+        } finally {
         setLoading(false);
       }
     };

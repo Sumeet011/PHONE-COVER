@@ -149,14 +149,10 @@ const DrinksContent = () => {
           design: product.design
         }));
 
-        console.log('Collections:', normalCollections.length);
-        console.log('Products:', mappedProducts.length);
-
         setProducts(mappedProducts);
         setFilteredProducts(mappedProducts);
         setLoading(false);
       } catch (err) {
-        console.error("Failed to fetch products:", err);
         setLoading(false);
       }
     };

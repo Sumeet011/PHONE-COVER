@@ -127,7 +127,6 @@ const ProfilePage = () => {
         setProfileImage(profile.profilePicture || null)
       }
     } catch (error) {
-      console.error('Error fetching profile:', error)
       toast.error('Failed to load profile data')
     }
   }
@@ -174,7 +173,6 @@ const ProfilePage = () => {
         toast.error(data.message || 'Failed to upload image')
       }
     } catch (error) {
-      console.error('Error uploading image:', error)
       toast.error('Failed to upload image')
     }
   }
@@ -199,7 +197,6 @@ const ProfilePage = () => {
       //   toast.error('Failed to send OTP')
       // }
     } catch (error) {
-      console.error('Error sending OTP:', error)
       toast.error('Error sending OTP')
     } finally {
       setLoading(false)
@@ -251,7 +248,6 @@ const ProfilePage = () => {
         // }
       }
     } catch (error) {
-      console.error('Error verifying:', error)
       toast.error('Verification failed')
     } finally {
       setLoading(false)
@@ -302,7 +298,6 @@ const ProfilePage = () => {
       //   toast.error('Failed to update')
       // }
     } catch (error) {
-      console.error(`Error updating ${field}:`, error)
       toast.error('Update failed')
     } finally {
       setLoading(false)

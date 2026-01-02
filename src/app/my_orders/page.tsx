@@ -88,8 +88,6 @@ const MyOrders = () => {
         });
 
         const data = await response.json();
-        console.log("Orders fetched:", data);
-
         if (data.success) {
           setOrders(data.orders || []);
           if (data.orders && data.orders.length === 0 && data.message) {
@@ -102,7 +100,6 @@ const MyOrders = () => {
           toast.error(data.message || "Failed to fetch orders");
         }
       } catch (error) {
-        console.error("Error fetching orders:", error);
         toast.error("Failed to load orders");
       } finally {
         setLoading(false);

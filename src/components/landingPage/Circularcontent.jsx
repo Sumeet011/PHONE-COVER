@@ -45,7 +45,7 @@ const Circularcontent = () => {
           setTitle(settingsData.data.circularGalleryTitle);
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        // Use defaults
       }
     };
     

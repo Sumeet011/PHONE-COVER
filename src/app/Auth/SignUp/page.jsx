@@ -108,7 +108,7 @@ const SignUpPage = () => {
         toast.error(data.message || 'Failed to send OTP')
       }
     } catch (error) {
-      console.error('Error sending OTP:', error)
+
       toast.error('Error sending OTP. Please try again.')
     } finally {
       setLoading(false)
@@ -156,7 +156,7 @@ const SignUpPage = () => {
         toast.error(data.message || 'OTP verification failed')
       }
     } catch (error) {
-      console.error('OTP verification error:', error)
+
       toast.error('An error occurred. Please try again.')
     } finally {
       setLoading(false)
@@ -200,7 +200,7 @@ const SignUpPage = () => {
         toast.error(data.message || 'Sign up failed')
       }
     } catch (error) {
-      console.error('Sign up error:', error)
+
       toast.error('An error occurred. Please try again.')
     } finally {
       setLoading(false)

@@ -23,7 +23,7 @@ export function TextScrollDemo() {
           });
         }
       } catch (error) {
-        console.error('Error fetching site settings:', error);
+        // Use default settings
       }
     };
 

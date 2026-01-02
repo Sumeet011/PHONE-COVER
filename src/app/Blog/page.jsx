@@ -37,7 +37,6 @@ export default function BlogPage() {
 					setPosts(transformedPosts);
 				}
 			} catch (err) {
-				console.error("Error fetching blogs:", err);
 				setError("Failed to load blogs. Please try again later.");
 			} finally {
 				setLoading(false);

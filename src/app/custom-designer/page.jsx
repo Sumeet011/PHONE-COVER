@@ -71,7 +71,6 @@ export default function CustomDesignerPage() {
           setModelsByBrand(models);
         }
       } catch (error) {
-        console.error('Failed to fetch phone brands:', error);
         // Fallback to hardcoded brands if API fails
         setPhoneBrands([
           { value: "apple", label: "Apple" },
@@ -178,6 +177,31 @@ export default function CustomDesignerPage() {
     setImageTransform({ x: 0, y: 0, scale: 1, rotation: 0 });
   };
 
+  // Compress image helper function
+  const compressImage = (base64Image, maxWidth = 1200, quality = 0.85) => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.src = base64Image;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // Resize if too large
+        if (width > maxWidth) {
+          height = (maxWidth / width) * height;
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+    });
+  };
+
   // Capture design as image
   const captureDesignImage = async () => {
     const phoneContainer = document.getElementById("phone-preview");
@@ -188,15 +212,15 @@ export default function CustomDesignerPage() {
     try {
       const canvas = await html2canvas(phoneContainer, {
         backgroundColor: null,
-        scale: 2, // Higher quality
+        scale: 1.5, // Balanced quality and speed
         logging: false,
         useCORS: true,
         allowTaint: true,
       });
 
-      return canvas.toDataURL("image/png");
+      // Use JPEG with 85% quality for smaller file size
+      return canvas.toDataURL("image/jpeg", 0.85);
     } catch (error) {
-      console.error("Error capturing design:", error);
       throw error;
     }
   };
@@ -204,7 +228,6 @@ export default function CustomDesignerPage() {
   // Upload image to backend
   const uploadImageToBackend = async (imageData) => {
     try {
-      console.log("Uploading to:", `${BACKEND_URL}/api/custom-design/upload`);
       const response = await fetch(`${BACKEND_URL}/api/custom-design/upload`, {
         method: "POST",
         headers: {
@@ -217,7 +240,7 @@ export default function CustomDesignerPage() {
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         const text = await response.text();
-        console.error("Non-JSON response:", text.substring(0, 200));
+        );
         throw new Error(`Backend API not responding correctly. Make sure backend is running on http://localhost:3000`);
       }
 
@@ -229,7 +252,6 @@ export default function CustomDesignerPage() {
 
       return result.data.url;
     } catch (error) {
-      console.error("Upload error:", error);
       throw error;
     }
   };
@@ -256,7 +278,6 @@ export default function CustomDesignerPage() {
       setUploadStatus("Download complete!");
       setTimeout(() => setUploadStatus(""), 2000);
     } catch (error) {
-      console.error("Export error:", error);
       //alert("Failed to export design. Please try again.");
       setUploadStatus("");
     } finally {
@@ -293,22 +314,20 @@ export default function CustomDesignerPage() {
     setUploadStatus("Processing your design...");
 
     try {
-      // 1. Capture the design image
+      // 1. Compress and upload original user image first (ALWAYS upload separately)
+      setUploadStatus("Compressing original image...");
+      const compressedOriginal = await compressImage(uploadedImage, 1200, 0.85);
+      
+      setUploadStatus("Uploading original image...");
+      const originalImageUrl = await uploadImageToBackend(compressedOriginal);
+
+      // 2. Capture the design screenshot
       setUploadStatus("Capturing design...");
       const designImageData = await captureDesignImage();
 
-      // 2. Upload design image to Cloudinary
+      // 3. Upload design screenshot to Cloudinary
       setUploadStatus("Uploading design...");
       const designImageUrl = await uploadImageToBackend(designImageData);
-
-      // 3. Upload original image if it's a file (not already a URL)
-      let originalImageUrl = "";
-      if (uploadedImage && uploadedImage.startsWith("data:")) {
-        setUploadStatus("Uploading original image...");
-        originalImageUrl = await uploadImageToBackend(uploadedImage);
-      } else {
-        originalImageUrl = uploadedImage;
-      }
 
       // 4. Add to cart via API
       setUploadStatus("Adding to cart...");
@@ -338,7 +357,7 @@ export default function CustomDesignerPage() {
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         const text = await response.text();
-        console.error("Non-JSON response:", text.substring(0, 500));
+        );
         throw new Error(`Server error: Expected JSON but got ${contentType}. Is the backend server running on port 3000?`);
       }
 
@@ -362,7 +381,6 @@ export default function CustomDesignerPage() {
       }, 1000);
 
     } catch (error) {
-      console.error("Add to cart error:", error);
       //alert(`Failed to add to cart: ${error.message}`);
       setUploadStatus("");
     } finally {

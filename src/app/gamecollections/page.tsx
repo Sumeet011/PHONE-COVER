@@ -93,13 +93,11 @@ export default function GameCollections() {
       setLoading(true);
       const response = await fetch(`${BACKEND_URL}/api/groups`);
       const data = await response.json();
-      console.log("Fetched groups:", data);
       if (data.success && data.items) {
         setGroups(data.items);
       }
     } catch (error) {
-      console.error("Error fetching groups:", error);
-    } finally {
+      } finally {
       setLoading(false);
     }
   };

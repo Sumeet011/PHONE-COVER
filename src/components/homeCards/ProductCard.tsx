@@ -130,10 +130,8 @@ export default function HorizontalScrollableCards() {
           productsCount: collection.Products?.length || 0
         }));
         
-        console.log('Collections loaded:', mappedCollections.length);
         setSampleDrinks(mappedCollections);
       } catch (error) {
-        console.error("Error fetching collections:", error);
         setError(error instanceof Error ? error.message : "Failed to fetch collections");
         setSampleDrinks([]);
       } finally {

@@ -37,8 +37,7 @@ const CollectionsPage = () => {
           setNormalCollections(normal);
         }
       } catch (error) {
-        console.error("Error fetching collections:", error);
-      } finally {
+        } finally {
         setLoading(false);
       }
     };

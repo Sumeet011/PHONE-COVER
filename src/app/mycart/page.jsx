@@ -38,7 +38,6 @@ const CartPage = () => {
         setTooltips(data.data.tooltips);
       }
     } catch (error) {
-      console.error('Error fetching tooltips:', error);
       // Set default tooltips if fetch fails
       setTooltips([
         {
@@ -94,38 +93,11 @@ const CartPage = () => {
       const result = await response.json();
 
       if (result.success) {
-        console.log('Raw cart items from backend:', result.data.items);
         
         // Load applied coupons from cart
         if (result.data.appliedCoupons) {
           setAppliedCoupons(result.data.appliedCoupons);
         }
-        
-        // Log items with missing product details or issues
-        result.data.items.forEach(item => {
-          if (!item.productDetails && item.type !== 'custom-design') {
-            console.warn(`⚠️ Missing productDetails for ${item.type}:`, {
-              type: item.type,
-              productId: item.productId,
-              _id: item._id
-            });
-          }
-          if (item.type === 'custom-design' && !item.customDesign?.designImageUrl && !item.customDesign?.originalImageUrl) {
-            console.warn(`⚠️ Custom design has no image:`, {
-              productId: item.productId,
-              _id: item._id,
-              customDesign: item.customDesign
-            });
-          }
-          // Warn if products/collections have customDesign populated (shouldn't happen)
-          if ((item.type === 'product' || item.type === 'collection') && item.customDesign) {
-            console.warn(`⚠️ Non-custom item has customDesign object:`, {
-              type: item.type,
-              productId: item.productId,
-              customDesign: item.customDesign
-            });
-          }
-        });
         
         // Transform cart items to match your component structure
         const transformedItems = result.data.items.map(item => {
@@ -197,7 +169,6 @@ const CartPage = () => {
         setCartItems([]);
       }
     } catch (error) {
-      console.error('Error fetching cart items:', error);
       toast.error("Failed to load cart",{
           position: "top-right",
           autoClose: 3000,
@@ -266,7 +237,6 @@ const CartPage = () => {
         });
       }
     } catch (error) {
-      console.error('Error updating cart:', error);
       toast.error("Failed to update quantity", {
         position: "top-right",
         autoClose: 3000,
@@ -300,7 +270,6 @@ const CartPage = () => {
         toast.error(result.message || "Failed to remove item");
       }
     } catch (error) {
-      console.error('Error removing item:', error);
       toast.error("Failed to remove item");
     }
   };
@@ -331,7 +300,6 @@ const CartPage = () => {
         toast.error(result.message || "Failed to clear cart");
       }
     } catch (error) {
-      console.error('Error clearing cart:', error);
       toast.error("Failed to clear cart");
     }
   };
@@ -395,7 +363,6 @@ const CartPage = () => {
         toast.error(validateResult.message || "Invalid coupon code");
       }
     } catch (error) {
-      console.error('Error applying coupon:', error);
       toast.error("Failed to apply coupon");
     }
   };
@@ -424,7 +391,6 @@ const CartPage = () => {
         }
       }
     } catch (error) {
-      console.error('Error removing coupon:', error);
       toast.error("Failed to remove coupon");
     }
   };
@@ -635,11 +601,6 @@ const CartPage = () => {
                 </div>
               ))}
             </div>
-
-            {/* Debug: Log cart items before passing to OrderSummary */}
-            {console.log('🛒 CartItems in mycart before OrderSummary:', cartItems)}
-            {console.log('🎨 CustomDesign items:', cartItems.filter(i => i.type === 'custom-design'))}
-            {console.log('🎟️ Applied coupons in mycart:', appliedCoupons)}
 
             {/* Order Summary */}
             <OrderSummary
