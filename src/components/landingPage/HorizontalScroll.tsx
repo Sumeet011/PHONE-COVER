@@ -114,6 +114,7 @@ export default function HorizontalScrollableCards() {
         setProducts(mappedProducts);
         setLoading(false);
       } catch (error) {
+        console.error('Error fetching products:', error);
         setLoading(false);
       }
     };
@@ -135,7 +136,7 @@ export default function HorizontalScrollableCards() {
           });
         }
       } catch (error) {
-        // Use defaults
+        console.error('Error fetching site settings:', error);
       }
     };
 

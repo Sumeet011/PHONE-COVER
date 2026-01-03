@@ -82,7 +82,7 @@ const LoginPage = () => {
         }
       }
     } catch (error) {
-
+      console.error('Error sending OTP:', error)
       toast.error('Error sending OTP. Please try again.')
     } finally {
       setLoading(false)
@@ -146,8 +146,9 @@ const LoginPage = () => {
       if (response.ok) {
         toast.success('Login successful!')
         // Store user data in USER object format
+        const userId = data.userId || data.user?.id || data.id
         localStorage.setItem('USER', JSON.stringify({
-          id: data.userId || data.id,
+          id: userId,
           isLogedIn: true
         }))
         if (data.token) {
@@ -159,7 +160,7 @@ const LoginPage = () => {
         toast.error(data.message || 'Login failed')
       }
     } catch (error) {
-
+      console.error('Login error:', error)
       toast.error('An error occurred. Please try again.')
     } finally {
       setLoading(false)

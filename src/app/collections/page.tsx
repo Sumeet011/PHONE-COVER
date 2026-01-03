@@ -9,6 +9,7 @@ type Collection = {
   name: string;
   description: string;
   type: string;
+  price?: number;
   heroImage?: string;
   image?: string;
   Products?: any[];
@@ -65,9 +66,16 @@ const CollectionsPage = () => {
         <p className="text-sm text-gray-400 mt-1 line-clamp-2">
           {collection.description}
         </p>
-        <p className="text-xs text-gray-500 mt-2">
-          {collection.Products?.length || 0} Products
-        </p>
+        <div className="flex justify-between items-center mt-2">
+          <p className="text-xs text-gray-500">
+            {collection.Products?.length || 0} Products
+          </p>
+          {collection.type === 'gaming' && collection.price && (
+            <p className="text-sm font-bold text-[#9AE600]">
+              ₹{collection.price}
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="absolute top-6 right-6 px-2 py-1 bg-[#9AE600] text-black text-xs font-bold rounded">

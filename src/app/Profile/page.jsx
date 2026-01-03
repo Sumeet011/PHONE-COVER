@@ -47,10 +47,11 @@ const ProfilePage = () => {
     phone: ''
   })
 
-  // Verification states
-  const [isVerified, setIsVerified] = useState(false)
+  // Verification states - Verification removed, users can edit directly
+  const [isVerified, setIsVerified] = useState(true)
   const [verificationMethod, setVerificationMethod] = useState('password') // 'password' or 'otp'
   const [showPassword, setShowPassword] = useState(false)
+  const [showPasswordField, setShowPasswordField] = useState(false)
   const [password, setPassword] = useState('')
   const [otp, setOtp] = useState('')
   const [otpSent, setOtpSent] = useState(false)
@@ -60,30 +61,90 @@ const ProfilePage = () => {
   const [collections, setCollections] = useState([])
   const [standardCards, setStandardCards] = useState([])
   
-  // Mock collections data - Replace with API call
-  const mockCollections = [
-    { src: '/images/1.webp', alt: 'Collection 1' },
-    { src: '/images/2.webp', alt: 'Collection 2' },
-    { src: '/images/3.webp', alt: 'Collection 3' },
-  ]
-  
-  const mockStandardCards = [
-    { src: '/images/1.webp', alt: 'Card 1' },
-    { src: '/images/2.webp', alt: 'Card 2' },
-    { src: '/images/3.webp', alt: 'Card 3' },
-    { src: '/images/1.webp', alt: 'Card 4' },
-  ]
+  // Fetch user's owned collections and products from user profile
+  useEffect(() => {
+    if (!userId) return
+    
+    const fetchUserCollectionsAndProducts = async () => {
+      try {
+        console.log('Fetching user profile with gaming collections...')
+        
+        // Fetch user profile which now includes gamingCollections and standardProducts
+        const response = await fetch(`${BACKEND_URL}/api/users/profile/${userId}`)
+        const data = await response.json()
+        
+        if (!data.success || !data.data) {
+          console.error('Failed to fetch user profile')
+          return
+        }
+        
+        const profile = data.data
+        console.log('User profile:', profile)
+        console.log('Gaming collections:', profile.gamingCollections)
+        console.log('Standard products:', profile.standardProducts)
+        
+        // Format gaming collections for SwipeCard
+        const gamingCollectionsForSwipe = (profile.gamingCollections || []).map(collection => {
+          console.log(`Collection "${collection.collectionName}" has ${collection.cards?.length || 0} cards`)
+          console.log('Cards:', collection.cards)
+          
+          // Each collection becomes ONE SwipeCard with multiple images
+          const images = collection.cards?.map(card => {
+            console.log('Card:', card.name, 'Image:', card.image)
+            return {
+              src: card.image || '/images/card.webp',
+              alt: card.name
+            }
+          }) || []
+          
+          console.log('Formatted images for this collection:', images)
+          return {
+            name: collection.collectionName,
+            images: images
+          }
+        }).filter(collection => collection.images.length > 0) // Filter out empty collections
+        
+        console.log('All gaming collections formatted:', gamingCollectionsForSwipe)
+        setCollections(gamingCollectionsForSwipe)
+        
+        // Format standard cards
+        const formattedStandardCards = (profile.standardProducts || []).map(product => {
+          console.log('Standard product:', product.name, 'Image:', product.image)
+          return {
+            src: product.image || '/images/card.webp',
+            alt: product.name
+          }
+        })
+        
+        console.log('Standard cards formatted:', formattedStandardCards)
+        setStandardCards(formattedStandardCards)
+        
+        console.log('Final result:', {
+          gamingCollections: gamingCollectionsForSwipe.length,
+          totalCards: gamingCollectionsForSwipe.reduce((sum, collection) => sum + collection.images.length, 0),
+          standardCards: formattedStandardCards.length
+        })
+        
+      } catch (error) {
+        console.error('Error fetching user collections and products:', error)
+      }
+    }
+    
+    fetchUserCollectionsAndProducts()
+  }, [userId, BACKEND_URL])
 
   // Edit states
   const [isEditing, setIsEditing] = useState({
     name: false,
     email: false,
-    phone: false
+    phone: false,
+    password: false
   })
   const [editValues, setEditValues] = useState({
     name: '',
     email: '',
-    phone: ''
+    phone: '',
+    password: ''
   })
 
   // Initialize user data
@@ -91,28 +152,43 @@ const ProfilePage = () => {
     const storedUser = localStorage.getItem('USER')
     if (storedUser) {
       const user = JSON.parse(storedUser)
+      console.log('Stored user:', user)
+      console.log('User ID:', user.id)
       setUserId(user.id)
       setIsLoggedIn(true)
       
       if (!user.isLogedIn) {
         toast.error('Please login to access your profile')
         router.push('/Auth/Login')
+        return
+      }
+
+      // Fetch user profile data with the user ID
+      if (user.id) {
+        fetchUserProfile(user.id)
+      } else {
+        toast.error('User ID not found. Please login again.')
+        router.push('/Auth/Login')
       }
     } else {
       router.push('/Auth/Login')
     }
-
-    // Fetch user profile data
-    fetchUserProfile()
   }, [router])
 
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = async (id) => {
+    const profileUserId = id || userId
+    if (!profileUserId) return
+
     try {
-      const response = await fetch(`${BACKEND_URL}/api/users/profile/${userId}`)
+      const response = await fetch(`${BACKEND_URL}/api/users/profile/${profileUserId}`)
       const data = await response.json()
+      
+      console.log('📋 Profile API response:', data)
       
       if (data.success && data.data) {
         const profile = data.data
+        console.log('👤 User profile data:', profile)
+        
         setUserData({
           name: profile.username || profile.name || '',
           email: profile.email || '',
@@ -125,8 +201,18 @@ const ProfilePage = () => {
         })
         setUserRank(profile.rank || profile.score || 0)
         setProfileImage(profile.profilePicture || null)
+        
+        console.log('✅ Profile data set:', {
+          name: profile.username || profile.name,
+          email: profile.email,
+          phone: profile.phoneNumber || profile.phone
+        })
+      } else {
+        console.error('❌ Profile fetch failed:', data.message)
+        toast.error(data.message || 'Failed to load profile data')
       }
     } catch (error) {
+      console.error('❌ Profile fetch error:', error)
       toast.error('Failed to load profile data')
     }
   }
@@ -157,6 +243,9 @@ const ProfilePage = () => {
 
       const response = await fetch(`${BACKEND_URL}/api/users/upload-profile-picture`, {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: formData
       })
 
@@ -276,27 +365,28 @@ const ProfilePage = () => {
 
     setLoading(true)
     try {
-      // TODO: Update field on server
-      const response = await fetch(`${BACKEND_URL}/api/user/update-profile`, {
+      // Update field on server
+      const response = await fetch(`${BACKEND_URL}/api/users/profile`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify({
-          userId,
-          field,
-          value: editValues[field]
+          [field]: editValues[field]
         })
       })
 
-      // if (response.ok) {
+      if (response.ok) {
         setUserData(prev => ({
           ...prev,
           [field]: editValues[field]
         }))
         setIsEditing(prev => ({ ...prev, [field]: false }))
         toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully!`)
-      // } else {
-      //   toast.error('Failed to update')
-      // }
+      } else {
+        toast.error('Failed to update')
+      }
     } catch (error) {
       toast.error('Update failed')
     } finally {
@@ -322,7 +412,7 @@ const ProfilePage = () => {
         </h1>
 
         {/* Main Grid: Left Side (Details) + Right Side (Collections) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1  gap-8 lg:gap-8">
           
           {/* LEFT SIDE: Profile Details */}
           <div className="space-y-6">
@@ -368,8 +458,8 @@ const ProfilePage = () => {
                 </div>
               </div>
 
-              {/* Verification Section */}
-              {!isVerified && (
+              {/* Verification Section - Removed for easier editing */}
+              {false && !isVerified && (
                 <div className="bg-[#0a0a0a] rounded-xl p-4 mb-6 border border-gray-800">
                   <h3 className="text-white text-sm font-semibold mb-3 flex items-center gap-2">
                     <Lock className="w-4 h-4 text-[#9AE600]" />
@@ -476,7 +566,7 @@ const ProfilePage = () => {
                 <div className="bg-[#0a0a0a] rounded-xl p-4 border border-gray-800">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-gray-400 text-xs uppercase">Full Name</span>
-                    {isVerified && (
+                    {(
                       <div className="flex gap-2">
                         {isEditing.name ? (
                           <>
@@ -513,26 +603,24 @@ const ProfilePage = () => {
                 <div className="bg-[#0a0a0a] rounded-xl p-4 border border-gray-800">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-gray-400 text-xs uppercase">Email</span>
-                    {isVerified && (
-                      <div className="flex gap-2">
-                        {isEditing.email ? (
-                          <>
-                            <button onClick={() => handleSaveField('email')} className="text-green-400 hover:text-green-300">
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => handleEditToggle('email')} className="text-red-400 hover:text-red-300">
-                              <X className="w-4 h-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <button onClick={() => handleEditToggle('email')} className="text-gray-400 hover:text-[#9AE600]">
-                            <Edit2 className="w-4 h-4" />
+                    <div className="flex gap-2">
+                      {isEditing.email ? (
+                        <>
+                          <button onClick={() => handleSaveField('email')} className="text-green-400 hover:text-green-300">
+                            <Check className="w-4 h-4" />
                           </button>
-                        )}
-                      </div>
-                    )}
+                          <button onClick={() => handleEditToggle('email')} className="text-red-400 hover:text-red-300">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <button onClick={() => handleEditToggle('email')} className="text-gray-400 hover:text-[#9AE600]">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  {isVerified && isEditing.email ? (
+                  {isEditing.email ? (
                     <Input
                       value={editValues.email}
                       onChange={(e) => setEditValues(prev => ({ ...prev, email: e.target.value }))}
@@ -550,26 +638,24 @@ const ProfilePage = () => {
                 <div className="bg-[#0a0a0a] rounded-xl p-4 border border-gray-800">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-gray-400 text-xs uppercase">Phone</span>
-                    {isVerified && (
-                      <div className="flex gap-2">
-                        {isEditing.phone ? (
-                          <>
-                            <button onClick={() => handleSaveField('phone')} className="text-green-400 hover:text-green-300">
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => handleEditToggle('phone')} className="text-red-400 hover:text-red-300">
-                              <X className="w-4 h-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <button onClick={() => handleEditToggle('phone')} className="text-gray-400 hover:text-[#9AE600]">
-                            <Edit2 className="w-4 h-4" />
+                    <div className="flex gap-2">
+                      {isEditing.phone ? (
+                        <>
+                          <button onClick={() => handleSaveField('phone')} className="text-green-400 hover:text-green-300">
+                            <Check className="w-4 h-4" />
                           </button>
-                        )}
-                      </div>
-                    )}
+                          <button onClick={() => handleEditToggle('phone')} className="text-red-400 hover:text-red-300">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <button onClick={() => handleEditToggle('phone')} className="text-gray-400 hover:text-[#9AE600]">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  {isVerified && isEditing.phone ? (
+                  {isEditing.phone ? (
                     <Input
                       value={editValues.phone}
                       onChange={(e) => setEditValues(prev => ({ ...prev, phone: e.target.value }))}
@@ -579,6 +665,57 @@ const ProfilePage = () => {
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4 text-gray-500" />
                       <span className="text-white">{userData.phone || 'Not set'}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Password */}
+                <div className="bg-[#0a0a0a] rounded-xl p-4 border border-gray-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-gray-400 text-xs uppercase">Password</span>
+                    <div className="flex gap-2">
+                      {isEditing.password ? (
+                        <>
+                          <button onClick={() => handleSaveField('password')} className="text-green-400 hover:text-green-300">
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleEditToggle('password')} className="text-red-400 hover:text-red-300">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <button onClick={() => handleEditToggle('password')} className="text-gray-400 hover:text-[#9AE600]">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {isEditing.password ? (
+                    <div className="relative">
+                      <Input
+                        type={showPasswordField ? 'text' : 'password'}
+                        value={editValues.password}
+                        onChange={(e) => setEditValues(prev => ({ ...prev, password: e.target.value }))}
+                        placeholder="Enter new password"
+                        className="bg-[#131313] border-gray-700 text-white pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordField(!showPasswordField)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                      >
+                        {showPasswordField ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Lock className="w-4 h-4 text-gray-500" />
+                        <span className="text-white">••••••••</span>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        (Password is encrypted)
+                      </div>
                     </div>
                   )}
                 </div>
@@ -605,17 +742,26 @@ const ProfilePage = () => {
             <div className="bg-[#131313] rounded-2xl p-6 border border-gray-800">
               <div className="flex items-center gap-2 mb-4">
                 <Package className="w-5 h-5 text-[#9AE600]" />
-                <h2 className="text-white text-xl font-bold">My Collections</h2>
+                <h2 className="text-white text-xl font-bold">Gaming Collections</h2>
               </div>
               
               {/* Horizontal Scrollable Collections */}
-              <div className="overflow-x-auto scrollbar-hide">
-                <div className="flex gap-4 pb-4">
-                  {mockCollections.map((img, index) => (
-                    <div key={index} className="flex-shrink-0">
-                      <SwipeCard images={[img]} slideShadows={false} />
-                    </div>
-                  ))}
+              <div className="overflow-x-auto scrollbar-hide -mx-2">
+                <div className="flex flex-row gap-4 pb-4 w-max px-2 items-start">
+                  {collections.length > 0 ? (
+                    collections.map((collection, index) => (
+                      <div key={index} className="flex-shrink-0">
+                        <SwipeCard 
+                          images={collection.images} 
+                          slideShadows={false}
+                          collectionName={collection.name}
+                          alignLeft={true}
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-400 text-sm">No gaming collections unlocked yet. Purchase collections to see them here!</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -626,15 +772,51 @@ const ProfilePage = () => {
                 <div className="w-5 h-5 flex items-center justify-center text-[#9AE600]">🃏</div>
                 <h2 className="text-white text-xl font-bold">Standard Cards</h2>
               </div>
-              
-              {/* Horizontal Scrollable Standard Cards */}
-              <div className="overflow-x-auto scrollbar-hide">
-                <div className="flex gap-4 pb-4">
-                  {mockStandardCards.map((img, index) => (
-                    <div key={index} className="flex-shrink-0">
-                      <SwipeCard images={[img]} slideShadows={false} />
-                    </div>
-                  ))}
+              <div className="overflow-x-auto scrollbar-hide -mx-2 px-2">
+                <div className="flex gap-4 pb-4 w-max">
+                  {standardCards.length > 0 ? (
+                    standardCards.map((card, index) => (
+                      <div
+                        key={index}
+                        className="group relative bg-[#1a1816] rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-transform transform hover:scale-105 duration-300 flex flex-col h-[230px] w-[150px] min-[370px]:w-[180px] min-[370px]:h-[270px] md:h-[320px] md:w-[220px]"
+                      >
+                        <div className="mouse-pointer relative overflow-hidden rounded-xl h-[290px]">
+                          <img
+                            src={card.src}
+                            alt={card.alt}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.src = '/images/card.webp'
+                            }}
+                          />
+                        </div>
+
+                        <div className="mt-3">
+                          <h2 className="text-base md:text-lg font-semibold leading-tight line-clamp-1">
+                            {card.alt}
+                          </h2>
+                        </div>
+
+                        <div className="absolute bottom-3 right-3 w-6 h-6 rounded-full bg-white group-hover:bg-lime-400 flex items-center justify-center">
+                          <svg
+                            className="w-5 h-5 text-black"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M7 17l10-10M7 7h10v10"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-400 text-sm">No standard cards unlocked yet. Purchase products to see them here!</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -642,7 +824,7 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      <style jsx global>{`
+      <style dangerouslySetInnerHTML={{__html: `
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
@@ -650,7 +832,7 @@ const ProfilePage = () => {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
-      `}</style>
+      `}}></style>
     </div>
   )
 }

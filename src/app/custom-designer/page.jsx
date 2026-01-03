@@ -212,14 +212,14 @@ export default function CustomDesignerPage() {
     try {
       const canvas = await html2canvas(phoneContainer, {
         backgroundColor: null,
-        scale: 1.5, // Balanced quality and speed
+        scale: 1.0, // Faster rendering
         logging: false,
         useCORS: true,
         allowTaint: true,
       });
 
-      // Use JPEG with 85% quality for smaller file size
-      return canvas.toDataURL("image/jpeg", 0.85);
+      // Use JPEG with 70% quality for faster upload
+      return canvas.toDataURL("image/jpeg", 0.7);
     } catch (error) {
       throw error;
     }
@@ -240,9 +240,7 @@ export default function CustomDesignerPage() {
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         const text = await response.text();
-        );
-        throw new Error(`Backend API not responding correctly. Make sure backend is running on http://localhost:3000`);
-      }
+      };
 
       const result = await response.json();
       
@@ -314,22 +312,15 @@ export default function CustomDesignerPage() {
     setUploadStatus("Processing your design...");
 
     try {
-      // 1. Compress and upload original user image first (ALWAYS upload separately)
-      setUploadStatus("Compressing original image...");
-      const compressedOriginal = await compressImage(uploadedImage, 1200, 0.85);
-      
-      setUploadStatus("Uploading original image...");
-      const originalImageUrl = await uploadImageToBackend(compressedOriginal);
-
-      // 2. Capture the design screenshot
+      // 1. Capture design screenshot immediately
       setUploadStatus("Capturing design...");
       const designImageData = await captureDesignImage();
 
-      // 3. Upload design screenshot to Cloudinary
-      setUploadStatus("Uploading design...");
+      // 2. Upload design to Cloudinary
+      setUploadStatus("Uploading...");
       const designImageUrl = await uploadImageToBackend(designImageData);
 
-      // 4. Add to cart via API
+      // 3. Add to cart via API
       setUploadStatus("Adding to cart...");
       const response = await fetch(`${BACKEND_URL}/api/cart/add`, {
         method: "POST",
@@ -346,7 +337,7 @@ export default function CustomDesignerPage() {
           selectedModel: availableModels.find(m => m.value === selectedModel)?.label || selectedModel,
           customDesign: {
             designImageUrl,
-            originalImageUrl,
+            originalImageUrl: uploadedImage, // Store base64 in cart for reference only
             phoneModel: `${selectedBrand}-${selectedModel}`,
             transform: imageTransform,
           }
@@ -357,8 +348,7 @@ export default function CustomDesignerPage() {
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         const text = await response.text();
-        );
-        throw new Error(`Server error: Expected JSON but got ${contentType}. Is the backend server running on port 3000?`);
+        throw new Error(`Expected JSON, got: ${text}`);
       }
 
       const result = await response.json();
@@ -372,13 +362,6 @@ export default function CustomDesignerPage() {
       // Show success message
       //alert(`Custom design added to cart!\nTotal items: ${result.data.itemCount}\nTotal: ₹${result.data.total}`);
       
-      // Optionally redirect to cart
-      setTimeout(() => {
-        if (confirm("Would you like to view your cart?")) {
-          window.location.href = "/mycart";
-        }
-        setUploadStatus("");
-      }, 1000);
 
     } catch (error) {
       //alert(`Failed to add to cart: ${error.message}`);

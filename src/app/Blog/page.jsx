@@ -7,6 +7,7 @@ import BlogCard from "./BlogCard";
 import axios from "axios";
 
 export default function BlogPage() {
+	const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 	const [posts, setPosts] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -16,7 +17,7 @@ export default function BlogPage() {
 			try {
 				setLoading(true);
 				const response = await axios.get(
-					"https://phone-wraps-backend.onrender.com/api/blogs?status=published"
+					`${BACKEND_URL}/api/blogs?status=published`
 				);
 				if (response.data.success) {
 					// Transform the data to match the existing BlogCard format

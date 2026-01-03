@@ -34,6 +34,8 @@ type Collection = {
   name: string;
   description?: string;
   heroImage?: string;
+  type?: string;
+  price?: number;
   Products?: Product[];
   Features?: string[];
 };
@@ -263,10 +265,15 @@ const Specific_Collection = () => {
       }
 
       // Prepare cart item data
+      // For gaming collections, use collection price; for others, use product price
+      const itemPrice = collection?.type === 'gaming' && collection?.price 
+        ? collection.price 
+        : (currentProduct?.price || 0);
+      
       const cartItem = {
         type: "collection",
         productId: collectionId,
-        price: currentProduct?.price || 0,
+        price: itemPrice,
         quantity: quantity || 1,
         selectedBrand: selectedBrand,
         selectedModel: selectedModel,
@@ -447,8 +454,15 @@ const Specific_Collection = () => {
                 <div>
                   <h4 className="font-semibold text-white mb-2">Price:</h4>
                   <p className="text-[#9AE600] font-medium text-2xl">
-                    ₹{currentProduct?.price || "N/A"}
+                    ₹{collection?.type === 'gaming' && collection?.price 
+                      ? collection.price 
+                      : (currentProduct?.price || "N/A")}
                   </p>
+                  {collection?.type === 'gaming' && (
+                    <p className="text-gray-400 text-xs mt-1">
+                      Complete collection price (5 cards)
+                    </p>
+                  )}
                   <h4 className="font-semibold text-white mb-2 mt-4">
                     Material:
                   </h4>

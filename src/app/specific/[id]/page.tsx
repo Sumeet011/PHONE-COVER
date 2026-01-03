@@ -91,6 +91,11 @@ const ProductDetails = () => {
   const [quantity, setQuantity] = useState<number>(1);
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
+  // Suggested products state
+  const [suggestedProducts, setSuggestedProducts] = useState<any[]>([]);
+  const [selectedSuggested, setSelectedSuggested] = useState<Set<string>>(new Set());
+  const [addingToCart, setAddingToCart] = useState(false);
+
   // Phone brands state
   const [phonebrand, setPhonebrand] = useState<{ value: string; label: string }[]>([]);
   const [modelsByBrand, setModelsByBrand] = useState<Record<string, { value: string; label: string }[]>>({});
@@ -188,6 +193,13 @@ const ProductDetails = () => {
         // Filter out current product
         const related = allProducts.filter((p: Drink) => p.id !== parseInt(productId as string));
         setRelatedDrinks(related.slice(0, 4));
+
+        // Fetch suggested products
+        const suggestedRes = await fetch(`${BASE_URL}/suggested-products?activeOnly=true`);
+        const suggestedData = await suggestedRes.json();
+        if (suggestedData.success && suggestedData.data) {
+          setSuggestedProducts(suggestedData.data);
+        }
         
       } catch (error) {
         console.error("Error fetching product:", error);
@@ -212,6 +224,78 @@ const ProductDetails = () => {
 
   const handleQuantityChange = (newQuantity: number) => {
     setQuantity(newQuantity);
+  };
+
+  const toggleSuggestedProduct = async (productId: string, product: any) => {
+    const isCurrentlySelected = selectedSuggested.has(productId);
+    
+    // Update checkbox state
+    setSelectedSuggested((prev) => {
+      const newSet = new Set(prev);
+      if (isCurrentlySelected) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+
+    // If checking (adding), add to cart immediately
+    if (!isCurrentlySelected) {
+      const userData = localStorage.getItem('USER');
+      const userId = userData ? JSON.parse(userData).id : localStorage.getItem('userId');
+      
+      if (!userId) {
+        toast.error("Please login to add items to cart.");
+        router.push('/login');
+        return;
+      }
+
+      const loadingToast = toast.loading("Adding to cart...");
+
+      try {
+        const response = await fetch(`${BASE_URL}/cart/add`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Id': userId
+          },
+          body: JSON.stringify({
+            userId: userId,
+            type: 'suggested',
+            productId: product._id,
+            quantity: 1,
+            price: product.price
+          })
+        });
+
+        const result = await response.json();
+        toast.dismiss(loadingToast);
+
+        if (result.success) {
+          toast.success(`${product.name} added to cart!`, {
+            autoClose: 2000,
+          });
+        } else {
+          toast.error(result.message || "Failed to add to cart");
+          // Revert checkbox state on error
+          setSelectedSuggested((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(productId);
+            return newSet;
+          });
+        }
+      } catch (error) {
+        toast.dismiss(loadingToast);
+        toast.error("Failed to add to cart. Please try again.");
+        // Revert checkbox state on error
+        setSelectedSuggested((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(productId);
+          return newSet;
+        });
+      }
+    }
   };
 
   const handleAddToCart = async (drink: Drink) => {
@@ -412,6 +496,28 @@ const ProductDetails = () => {
                 </button>
               </div>
             </div>
+
+            {/* Suggested Products Section */}
+            {suggestedProducts.length > 0 && (
+              <div className="mt-6 space-y-2">
+                {suggestedProducts.map((product) => (
+                  <div
+                    key={product._id}
+                    className="flex items-center gap-3"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedSuggested.has(product._id)}
+                      onChange={() => toggleSuggestedProduct(product._id, product)}
+                      className="w-5 h-5 accent-lime-400 cursor-pointer"
+                    />
+                    <label className="text-sm text-gray-300 cursor-pointer" onClick={() => toggleSuggestedProduct(product._id, product)}>
+                      {product.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Description */}
             <div className="space-y-3">

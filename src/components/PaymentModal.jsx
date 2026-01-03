@@ -18,14 +18,15 @@ const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData,
       color: "from-purple-500 to-purple-400",
       type: "razorpay"
     },
-    {
-      id: "cod",
-      name: "Cash on Delivery",
-      description: "Pay when you receive your order",
-      icon: Banknote,
-      color: "from-lime-500 to-lime-400",
-      type: "cod"
-    },
+    // COD option hidden
+    // {
+    //   id: "cod",
+    //   name: "Cash on Delivery",
+    //   description: "Pay when you receive your order",
+    //   icon: Banknote,
+    //   color: "from-lime-500 to-lime-400",
+    //   type: "cod"
+    // },
   ];
 
   // Initialize Razorpay payment
@@ -59,19 +60,27 @@ const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData,
             if (orderData.address && orderData.address.email) {
               localStorage.setItem('userEmail', orderData.address.email);
             }
-            // ✅ Mark user as logged in after successful order
-  const storedUser = localStorage.getItem('USER');
-  if (storedUser) {
-    const user = JSON.parse(storedUser);
-    user.isLogedIn = true;
-    localStorage.setItem('USER', JSON.stringify(user));
-  } else {
-    // fallback: create one if not found
-    localStorage.setItem(
-      'USER',
-      JSON.stringify({ id: orderData.userId, isLogedIn: true })
-    );
-  }
+            
+            // ✅ Auto-login: Store user ID and token if returned (for new users or guests)
+            if (result.userId) {
+              localStorage.setItem('USER', JSON.stringify({
+                id: result.userId,
+                isLogedIn: true
+              }));
+              console.log('✅ User auto-logged in with ID:', result.userId);
+            }
+            
+            if (result.token) {
+              localStorage.setItem('token', result.token);
+              console.log('✅ Auth token stored');
+            }
+            
+            if (result.isNewUser) {
+              toast.success('Account created and logged in successfully!', {
+                position: "top-center",
+                autoClose: 2000
+              });
+            }
             
             toast.success('Payment successful! Order placed.', {
               position: "top-center",
@@ -86,6 +95,7 @@ const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData,
             toast.error(result.message || 'Payment verification failed');
           }
         } catch (error) {
+          console.error('Payment verification error:', error);
           toast.error('Payment verification failed. Please contact support.');
         } finally {
           setLoading(false);
@@ -93,6 +103,7 @@ const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData,
       },
       modal: {
         ondismiss: () => {
+          console.log('❌ Payment cancelled by user');
           toast.info('Payment cancelled', {
             position: "top-center",
             autoClose: 2000
@@ -113,6 +124,7 @@ const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData,
     const rzp = new window.Razorpay(options);
     
     rzp.on('payment.failed', function (response) {
+      console.error('❌ Payment failed:', response.error);
       toast.error(`Payment failed: ${response.error.description}`, {
         position: "top-center",
         autoClose: 4000
@@ -125,6 +137,10 @@ const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData,
 
   const handlePaymentSelect = async (method) => {
     if (loading) return;
+
+    console.log("Selected payment method:", method);
+    console.log("Form data:", formData);
+    console.log("Cart items:", cartItems);
 
     // Validate form data
     if (!formData || !formData.firstName || !formData.email || !formData.phone) {
@@ -143,12 +159,19 @@ const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData,
     const userData = localStorage.getItem('USER');
     const userId = userData ? JSON.parse(userData).id : null;
     
-    if (!userId) {
-      toast.error("User session not found. Please refresh the page.");
-      return;
-    }
+    // Allow guest checkout - userId can be null
+    console.log('👤 User ID:', userId || 'Guest Checkout');
 
     // Format items for backend - include all necessary fields including customDesign
+    console.log('🛒 Raw cartItems received in PaymentModal:', cartItems);
+    console.log('🎨 CartItems with customDesign field:', cartItems.map(i => ({
+      name: i.name,
+      type: i.type,
+      hasCustomDesign: !!i.customDesign,
+      customDesignKeys: i.customDesign ? Object.keys(i.customDesign) : [],
+      designImageUrl: i.customDesign?.designImageUrl
+    })));
+    
     const formattedItems = cartItems.map(item => ({
       productId: item.productId || item._id,
       name: item.name,
@@ -180,26 +203,34 @@ const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData,
         try {
           setLoading(true);
           
+          console.log("Initiating Razorpay payment...");
+          
           // Prepare complete order data to send after successful payment
           const completeOrderData = {
-            userId: userId,
+            userId: userId || 'guest',
             items: formattedItems,
             address: formattedAddress,
             coupon: formData.appliedCoupons || []
           };
+          
+          console.log('📦 Complete order data being sent:', completeOrderData);
+          console.log('🎨 Items with customDesign:', formattedItems.filter(i => i.customDesign));
+          console.log('🎟️ Coupons:', formData.appliedCoupons);
+          console.log('👤 Is Guest Checkout:', !userId);
           
           // Create Razorpay payment session (NOT the order yet)
           const razorpayResponse = await fetch(`${BACKEND_URL}/api/orders/razorpay`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              userId: userId,
+              userId: userId || 'guest',
               items: formattedItems,
               coupon: formData.appliedCoupons || []
             })
           });
 
           const razorpayResult = await razorpayResponse.json();
+          console.log("Razorpay session result:", razorpayResult);
           
           if (razorpayResult.success && razorpayResult.order) {
             // Initialize Razorpay modal - order will be created after successful payment
@@ -209,6 +240,7 @@ const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData,
             setLoading(false);
           }
         } catch (error) {
+          console.error('Razorpay error:', error);
           toast.error('Failed to process payment');
           setLoading(false);
         }
@@ -222,7 +254,7 @@ const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData,
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              userId: userId,
+              userId: userId || 'guest',
               items: formattedItems,
               amount: totalAmount,
               address: formattedAddress,
@@ -231,6 +263,7 @@ const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData,
           });
 
           const result = await response.json();
+          console.log("COD result:", result);
           
           if (result.success) {
             // Store email in localStorage for guest users to fetch their orders
@@ -261,6 +294,7 @@ const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData,
             });
           }
         } catch (error) {
+          console.error('COD order error:', error);
           toast.error('Failed to place order. Please try again.', {
             position: "top-center",
             autoClose: 3000

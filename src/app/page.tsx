@@ -13,6 +13,10 @@ import Footer from '@/components/homeCards/Footer'
 
 
 const page = () => {
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  console.log("Backend URL:", BACKEND_URL);
+  
+
   return (
     <div className="w-full max-w-full overflow-x-hidden">
       <Navbar />

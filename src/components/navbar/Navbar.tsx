@@ -80,6 +80,8 @@ const Navbar: React.FC = () => {
     { label: "Orders", path: "/my_orders" },
     { label: "Contact", path: "/contact" },
     { label: "LeaderBoard", path: "/leaderboard" },
+    {label:"Blogs",path:"/Blog"},
+    {label:"Custom Design",path:"/custom-designer"}
   ];
 
   const isSignedIn = false; // You can update this based on auth state
@@ -111,7 +113,7 @@ const Navbar: React.FC = () => {
 
         {/* Center: Desktop Nav Menu */}
         <div className="hidden lg:flex flex-1 justify-center min-w-0">
-          <div className="w-full max-w-lg bg-black/20 backdrop-blur-md rounded-3xl shadow-lg border border-white/30 px-2 py-1">
+          <div className="w-full max-w-3xl bg-black/20 backdrop-blur-md rounded-3xl shadow-lg border border-white/30 px-2 py-1">
             <ul className="flex h-full justify-between gap-1">
               {navItems.map((item) => {
                 const isActive = pathname === item.path;

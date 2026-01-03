@@ -64,8 +64,9 @@ const LeaderboardPage = () => {
       </div>
     );
 
-  // Split top 3 users
+  // Split top 3 users and reorder for podium display (2nd, 1st, 3rd)
   const topUsers = users.slice(0, 3);
+  const podiumOrder = topUsers.length >= 2 ? [topUsers[1], topUsers[0], topUsers[2]].filter(Boolean) : topUsers;
   const others = users.slice(3);
 
   return (
@@ -77,7 +78,10 @@ const LeaderboardPage = () => {
 
           {/* 🎖 Top 3 Users Section */}
           <div className="flex justify-center items-end gap-6 sm:gap-12 lg:gap-32 flex-nowrap overflow-x-auto pt-16 pb-16">
-            {topUsers.map((user, index) => (
+            {podiumOrder.map((user, index) => {
+              // Get the actual rank (not display order)
+              const actualRank = user.rank;
+              return (
               <div
                 key={user.id || index}
                 className="flex flex-col items-center gap-4 min-w-[120px]"
@@ -93,7 +97,7 @@ const LeaderboardPage = () => {
                 </div>
                 <h3
                   className={`${
-                    index === 1
+                    actualRank === 1
                       ? 'text-3xl sm:text-4xl font-bold'
                       : 'text-2xl sm:text-3xl font-semibold'
                   } text-white text-center`}
@@ -105,9 +109,9 @@ const LeaderboardPage = () => {
                   <div className="flex gap-2 items-center">
                     <div
                       className={`w-10 h-10 ${
-                        index === 0
+                        actualRank === 1
                           ? 'bg-[#ffd365]'
-                          : index === 1
+                          : actualRank === 2
                           ? 'bg-[#cdcdcd]'
                           : 'bg-[#b38a48]'
                       } rounded-lg flex items-center justify-center mb-2`}
@@ -128,7 +132,8 @@ const LeaderboardPage = () => {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
 
             {/* Hide placeholders when not enough users */}
             {topUsers.length < 3 &&
@@ -160,7 +165,7 @@ const LeaderboardPage = () => {
               {others.map((user, index) => (
                 <div key={user.id || index} className="bg-[#171c29] rounded-xl p-2">
                   <div className="grid grid-cols-4 items-center p-4 text-white text-sm">
-                    <span className="font-semibold -mr-20">{index + 4}</span>
+                    <span className="font-semibold -mr-20">{user.rank}</span>
                     <div className="flex items-center gap-3">
                       <div
                         className={`w-8 h-8 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-sm`}

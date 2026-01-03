@@ -17,16 +17,20 @@ interface CarouselProps {
   images: { src: string; alt: string }[]
   autoplayDelay?: number
   slideShadows?: boolean
+  collectionName?: string
+  alignLeft?: boolean
 }
 
 export const CardSwipe: React.FC<CarouselProps> = ({
   images,
   autoplayDelay = 1500,
   slideShadows = false,
+  collectionName = "Spider Man",
+  alignLeft = false,
 }) => {
   const css = `
     .swiper {
-      width: auto; /* shrink to fit slides */
+      width: 200px !important; /* fixed width for horizontal layout */
       padding-bottom: 50px;
     }
 
@@ -39,34 +43,33 @@ export const CardSwipe: React.FC<CarouselProps> = ({
     }
 
     .swiper-slide img {
-  display: block;
-  width: 130px; /* default width */
-  height: auto;
-  border-radius: 16px;
-}
+      display: block;
+      width: 130px; /* default width */
+      height: auto;
+      border-radius: 16px;
+    }
 
-/* Media query for small screens or larger (example for sm breakpoint) */
-@media (min-width: 640px) {
-  .swiper-slide img {
-    width: 150px;
-  }
-}
-
+    /* Media query for small screens or larger (example for sm breakpoint) */
+    @media (min-width: 640px) {
+      .swiper-slide img {
+        width: 150px;
+      }
+    }
   `
 
   return (
-    <section className="w-full">
+    <section className="w-fit inline-block">
       <style>{css}</style>
-      <div className="mx-auto max-w-4xl rounded-[24px] border border-black/5 p-1">
-        <div className="relative mx-auto flex flex-col rounded-[24px]">
+      <div className={`rounded-[24px] ${alignLeft ? 'border-0 p-0' : 'border border-black/5 p-1 mx-auto max-w-4xl'}`}>
+        <div className={`relative flex flex-col rounded-[24px] w-fit`}>
           
 
-          <div className="flex flex-col justify-center pb-2 pt-5 pl-4 items-center">
+          <div className={`flex flex-col pb-2 ${alignLeft ? 'pt-0 pl-0' : 'pt-5 pl-4'} ${alignLeft ? 'items-start justify-start' : 'items-center justify-center'}`}>
             
-            <h3 className="text-2xl md:text-3xl font-bold tracking-tight opacity-85">Spider Man</h3>
+            <h3 className={`font-bold tracking-tight opacity-85 ${alignLeft ? 'text-lg mb-2' : 'text-2xl md:text-3xl'}`}>{collectionName}</h3>
           </div>
 
-          <div className="flex justify-center items-center">
+          <div className={`flex items-center ${alignLeft ? 'justify-start' : 'justify-center'}`}>
             <Swiper
                 effect={"cards"}
                 grabCursor={true}

@@ -38,7 +38,7 @@ const CardCarouselParent = () => {
           setImages(formattedImages);
         }
       } catch (error) {
-        // Silently handle error
+        console.error('Error fetching design assets:', error);
       }
     };
     

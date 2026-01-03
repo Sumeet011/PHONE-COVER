@@ -6,6 +6,7 @@ import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/homeCards/Footer";
 
 export default function BlogDetailPage() {
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
   const params = useParams();
   const router = useRouter();
   const [blog, setBlog] = useState(null);
@@ -15,7 +16,7 @@ export default function BlogDetailPage() {
     const fetchBlog = async () => {
       try {
         const response = await fetch(
-          `https://phone-wraps-backend.onrender.com/api/blogs/${params.id}`
+          `${BACKEND_URL}/api/blogs/${params.id}`
         );
         const data = await response.json();
         
@@ -120,10 +121,70 @@ export default function BlogDetailPage() {
 
           {/* Article Content */}
           <div className="p-8 md:p-12">
-            <div
-              className="prose prose-invert prose-lg max-w-none blog-content"
-              dangerouslySetInnerHTML={{ __html: blog.content || blog.description }}
-            />
+            {/* Render Rich Content Blocks */}
+            {blog.contentBlocks && blog.contentBlocks.length > 0 ? (
+              <div className="prose prose-invert prose-lg max-w-none blog-content space-y-6">
+                {blog.contentBlocks.map((block, index) => {
+                  switch (block.type) {
+                    case 'heading':
+                      const HeadingTag = `h${block.level || 2}`;
+                      return (
+                        <HeadingTag key={index} className="font-bold text-white">
+                          {block.content}
+                        </HeadingTag>
+                      );
+                    
+                    case 'paragraph':
+                      return (
+                        <p key={index} className="text-gray-300 leading-relaxed">
+                          {block.content}
+                        </p>
+                      );
+                    
+                    case 'quote':
+                      return (
+                        <blockquote key={index} className="border-l-4 border-[#9AE600] pl-4 italic text-gray-400">
+                          {block.content}
+                        </blockquote>
+                      );
+                    
+                    case 'list':
+                      return (
+                        <ul key={index} className="list-disc list-inside space-y-2 text-gray-300">
+                          {block.items?.map((item, i) => (
+                            <li key={i}>{item}</li>
+                          ))}
+                        </ul>
+                      );
+                    
+                    case 'image':
+                      return (
+                        <figure key={index} className="my-8">
+                          <img
+                            src={block.content}
+                            alt={block.alt || ''}
+                            className="w-full rounded-lg"
+                          />
+                          {block.caption && (
+                            <figcaption className="text-center text-sm text-gray-500 mt-2">
+                              {block.caption}
+                            </figcaption>
+                          )}
+                        </figure>
+                      );
+                    
+                    default:
+                      return null;
+                  }
+                })}
+              </div>
+            ) : (
+              // Fallback to old content field
+              <div
+                className="prose prose-invert prose-lg max-w-none blog-content"
+                dangerouslySetInnerHTML={{ __html: blog.content || blog.excerpt }}
+              />
+            )}
           </div>
         </article>
 

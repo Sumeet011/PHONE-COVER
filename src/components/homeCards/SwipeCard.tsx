@@ -2,15 +2,28 @@
 import { CardSwipe } from "@/components/ui/card-swipe";
 import React, { useEffect, useState } from "react";
 
-const cardswipe = () => {
+interface SwipeCardProps {
+  images?: Array<{ src: string; alt: string }>;
+  slideShadows?: boolean;
+  collectionName?: string;
+  alignLeft?: boolean;
+}
+
+const SwipeCard = ({ images: propImages, slideShadows = false, collectionName, alignLeft = false }: SwipeCardProps) => {
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const [images, setImages] = useState([
+  const [images, setImages] = useState(propImages || [
     { src: "/images/1.webp", alt: "Image 1" },
     { src: "/images/2.webp", alt: "Image 2" },
     { src: "/images/3.webp", alt: "Image 3" },
   ]);
 
   useEffect(() => {
+    // Only fetch if no images provided via props
+    if (propImages && propImages.length > 0) {
+      setImages(propImages);
+      return;
+    }
+    
     // Fetch card category images from backend
     const fetchImages = async () => {
       try {
@@ -25,28 +38,14 @@ const cardswipe = () => {
           setImages(formattedImages);
         }
       } catch (error) {
-        // Silently handle error
+        console.error('Error fetching design assets:', error);
       }
     };
     
     fetchImages();
-  }, []);
+  }, [propImages, BACKEND_URL]);
 
-  return (
-    <div
-      className="w-full 
-  grid 
-  grid-cols-2          /* 2 on phones */
-  sm:grid-cols-3       /* 3 on tablets */
-  lg:grid-cols-4       /* 4 on laptops */
-  gap-4 m-4"
-    >
-      <CardSwipe images={images} slideShadows={false} />
-      <CardSwipe images={images} slideShadows={false} />
-      <CardSwipe images={images} slideShadows={false} />
-      <CardSwipe images={images} slideShadows={false} />
-    </div>
-  );
+  return <CardSwipe images={images} slideShadows={slideShadows} collectionName={collectionName} alignLeft={alignLeft} />;
 };
 
-export default cardswipe;
+export default SwipeCard;
