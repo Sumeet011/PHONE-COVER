@@ -27,13 +27,14 @@ const ProductCard: React.FC<{ drink: Drink }> = ({ drink }) => {
   return (
     <a
       href={`/drinks/${drink.id}`}
-      className="group relative bg-[#1a1816] rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-transform transform hover:scale-105 duration-300 flex flex-col h-[290px] w-[200px] snap-start"
+      className="group relative rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-transform transform hover:scale-105 duration-300 flex flex-col h-[290px] w-[200px] snap-start"
+      style={{ background: 'linear-gradient(to top, #1a1816 0%, #1a1816 30%, transparent 70%)' }}
     >
       <div className="relative overflow-hidden rounded-xl h-[300px]">
         <img
           src={drink.image}
           alt={drink.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
         />
         <p className="absolute bottom-3 left-3 text-white text-sm font-semibold bg-black/60 px-2 py-1 rounded">
           ₹{drink.price}

@@ -29,20 +29,21 @@ const ProductCard: React.FC<{ drink: Drink; href: string }> = ({ drink, href }) 
   return (
    <a
   href={href}
-  className="mr-4 group relative bg-[#1a1816] rounded-2xl p-4 text-white shadow-lg 
+  className="mr-4 group relative rounded-2xl overflow-hidden shadow-lg 
   hover:shadow-xl transition-transform transform hover:scale-105 duration-300 
   flex flex-col
   h-[230px] w-[150px] 
   min-[370px]:w-[180px] min-[370px]:h-[270px]
   min-[730px]:h-[350px] min-[730px]:w-[230px]
   snap-start"
+  style={{ background: 'linear-gradient(to top, #1a1816 0%, #1a1816 25%, transparent 65%)' }}
 >
 
       <div className="relative overflow-hidden rounded-xl h-[350px]">
         <img
           src={drink.image}
           alt={drink.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
         />
         <p className="absolute bottom-3 left-3 text-white text-sm font-semibold bg-black/60 px-2 py-1 rounded">
           ₹{drink.price}
@@ -190,8 +191,8 @@ const ProductDetails = () => {
           allProducts = allProductsResult;
         }
 
-        // Filter out current product
-        const related = allProducts.filter((p: Drink) => p.id !== parseInt(productId as string));
+        // Filter out current product and gaming collections
+        const related = allProducts.filter((p: Drink) => p.id !== parseInt(productId as string) && (p.type !== 'gaming' && p.type!='custom-designer'));
         setRelatedDrinks(related.slice(0, 4));
 
         // Fetch suggested products
@@ -226,76 +227,17 @@ const ProductDetails = () => {
     setQuantity(newQuantity);
   };
 
-  const toggleSuggestedProduct = async (productId: string, product: any) => {
-    const isCurrentlySelected = selectedSuggested.has(productId);
-    
-    // Update checkbox state
+  const toggleSuggestedProduct = (productId: string) => {
+    // Just toggle checkbox state, don't add to cart yet
     setSelectedSuggested((prev) => {
       const newSet = new Set(prev);
-      if (isCurrentlySelected) {
+      if (prev.has(productId)) {
         newSet.delete(productId);
       } else {
         newSet.add(productId);
       }
       return newSet;
     });
-
-    // If checking (adding), add to cart immediately
-    if (!isCurrentlySelected) {
-      const userData = localStorage.getItem('USER');
-      const userId = userData ? JSON.parse(userData).id : localStorage.getItem('userId');
-      
-      if (!userId) {
-        toast.error("Please login to add items to cart.");
-        router.push('/login');
-        return;
-      }
-
-      const loadingToast = toast.loading("Adding to cart...");
-
-      try {
-        const response = await fetch(`${BASE_URL}/cart/add`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'User-Id': userId
-          },
-          body: JSON.stringify({
-            userId: userId,
-            type: 'suggested',
-            productId: product._id,
-            quantity: 1,
-            price: product.price
-          })
-        });
-
-        const result = await response.json();
-        toast.dismiss(loadingToast);
-
-        if (result.success) {
-          toast.success(`${product.name} added to cart!`, {
-            autoClose: 2000,
-          });
-        } else {
-          toast.error(result.message || "Failed to add to cart");
-          // Revert checkbox state on error
-          setSelectedSuggested((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(productId);
-            return newSet;
-          });
-        }
-      } catch (error) {
-        toast.dismiss(loadingToast);
-        toast.error("Failed to add to cart. Please try again.");
-        // Revert checkbox state on error
-        setSelectedSuggested((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(productId);
-          return newSet;
-        });
-      }
-    }
   };
 
   const handleAddToCart = async (drink: Drink) => {
@@ -318,9 +260,10 @@ const ProductDetails = () => {
     });
 
     const userData = localStorage.getItem('USER');
-    const userId = userData ? JSON.parse(userData).id : null;
+    const userId = userData ? JSON.parse(userData).id : localStorage.getItem('userId');
 
     try {
+      // Add main product
       const response = await fetch(`${BASE_URL}/cart/add`, {
         method: 'POST',
         headers: {
@@ -328,7 +271,7 @@ const ProductDetails = () => {
           "User-Id": userId ? userId : "",
         },
           body: JSON.stringify({
-            userId: localStorage.getItem('userId'),
+            userId: userId,
             type: 'product',
             productId: drink.id,
             price: drink.price,
@@ -341,22 +284,79 @@ const ProductDetails = () => {
 
       const result = await response.json();
       
-      // Dismiss loading toast
-      toast.dismiss(loadingToast);
-
       if (result.success) {
+        let successCount = 1;
+        let failedCount = 0;
+
+        // Add selected suggested products
+        if (selectedSuggested.size > 0) {
+          const suggestedPromises = Array.from(selectedSuggested).map(async (productId) => {
+            const product = suggestedProducts.find(p => p._id === productId);
+            if (!product) return { success: false };
+
+            try {
+              const suggestedResponse = await fetch(`${BASE_URL}/cart/add`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'User-Id': userId
+                },
+                body: JSON.stringify({
+                  userId: userId,
+                  type: 'suggested',
+                  productId: product._id,
+                  quantity: 1,
+                  price: product.price
+                })
+              });
+              return await suggestedResponse.json();
+            } catch (error) {
+              return { success: false };
+            }
+          });
+
+          const suggestedResults = await Promise.all(suggestedPromises);
+          suggestedResults.forEach(res => {
+            if (res.success) successCount++;
+            else failedCount++;
+          });
+        }
+
+        // Dismiss loading toast
+        toast.dismiss(loadingToast);
+
         // Success notification
-        toast.success(`✅ ${quantity}x ${drink.name} added to cart!`, {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
-        
-        // Navigate to cart after short delay
+        if (successCount > 1) {
+          toast.success(`✅ ${successCount} items added to cart!`, {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+        } else {
+          toast.success(`✅ ${quantity}x ${drink.name} added to cart!`, {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+        }
+
+        if (failedCount > 0) {
+          toast.warning(`⚠️ ${failedCount} suggested items failed to add`, {
+            position: "top-right",
+            autoClose: 3000,
+          });
+        }
+
+        // Clear selected suggested products after successful add
+        setSelectedSuggested(new Set());
       } else {
+        toast.dismiss(loadingToast);
         toast.error(`❌ ${result.message || 'Failed to add to cart'}`, {
           position: "top-right",
           autoClose: 4000,
@@ -431,7 +431,7 @@ const ProductDetails = () => {
       <img
         src={drink.image || Img.src}
         alt={drink.name}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-contain"
       />
     </div>
   </div>
@@ -508,10 +508,10 @@ const ProductDetails = () => {
                     <input
                       type="checkbox"
                       checked={selectedSuggested.has(product._id)}
-                      onChange={() => toggleSuggestedProduct(product._id, product)}
+                      onChange={() => toggleSuggestedProduct(product._id)}
                       className="w-5 h-5 accent-lime-400 cursor-pointer"
                     />
-                    <label className="text-sm text-gray-300 cursor-pointer" onClick={() => toggleSuggestedProduct(product._id, product)}>
+                    <label className="text-sm text-gray-300 cursor-pointer" onClick={() => toggleSuggestedProduct(product._id)}>
                       {product.name}
                     </label>
                   </div>
@@ -605,7 +605,6 @@ const ProductDetails = () => {
         
       </div>
       <Footer />
-      <ToastContainer />
     </div>
   );
 };

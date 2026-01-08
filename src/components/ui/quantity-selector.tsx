@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
 interface QuantitySelectorProps {
@@ -16,6 +16,11 @@ export function QuantitySelector({
   onChange
 }: QuantitySelectorProps) {
   const [quantity, setQuantity] = useState(initialValue);
+
+  // Sync internal state when initialValue changes
+  useEffect(() => {
+    setQuantity(initialValue);
+  }, [initialValue]);
 
   const handleIncrease = () => {
     if (quantity < max) {

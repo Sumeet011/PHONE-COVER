@@ -27,13 +27,14 @@ const ProductCard: React.FC<{ drink: Drink; href: string }> = ({ drink, href }) 
   return (
     <a
       href={href}
-      className="group relative bg-[#1a1816] rounded-2xl p-4 text-white shadow-lg hover:shadow-xl transition-transform transform hover:scale-105 duration-300 flex flex-col h-[230px] w-[150px] min-[370px]:w-[180px] min-[370px]:h-[270px] md:h-[370px] md:w-[260px] snap-start"
+      className="group relative rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-transform transform hover:scale-105 duration-300 flex flex-col h-[230px] w-[150px] min-[370px]:w-[180px] min-[370px]:h-[270px] md:h-[370px] md:w-[260px] snap-start"
+      style={{ background: 'linear-gradient(to top, #1a1816 0%, #1a1816 25%, transparent 65%)' }}
     >
       <div className="relative overflow-hidden rounded-xl h-[300px]">
         <img
           src={drink.image}
           alt={drink.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
         />
       </div>
 
@@ -64,6 +65,7 @@ const ProductCard: React.FC<{ drink: Drink; href: string }> = ({ drink, href }) 
 
 export default function HorizontalScrollableCards() {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [featuredProducts, setFeaturedProducts] = useState<Drink[]>([]);
   const [sampleDrinks, setSampleDrinks] = useState<Drink[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,12 +82,28 @@ export default function HorizontalScrollableCards() {
       try {
         setLoading(true);
         
-        // Fetch site settings and collections in parallel
-        const [settingsRes, gamingRes, normalRes] = await Promise.all([
+        // Fetch featured products, site settings and standard collections in parallel
+        const [featuredRes, settingsRes, normalRes] = await Promise.all([
+          fetch(`${BACKEND_URL}/api/featured-home-products?activeOnly=true&limit=2`),
           fetch(`${BACKEND_URL}/api/site-settings`),
-          fetch(`${BACKEND_URL}/api/collections?type=gaming`),
           fetch(`${BACKEND_URL}/api/collections?type=normal`)
         ]);
+        
+        // Handle featured products (first 2 special products)
+        let featured: Drink[] = [];
+        if (featuredRes.ok) {
+          const featuredData = await featuredRes.json();
+          if (featuredData.success && featuredData.data) {
+            featured = featuredData.data.slice(0, 2).map((product: any) => ({
+              id: product._id,
+              name: product.name,
+              image: product.image || '/images/card.webp',
+              type: 'featured',
+              price: product.price
+            }));
+          }
+        }
+        setFeaturedProducts(featured);
         
         // Handle settings
         if (settingsRes.ok) {
@@ -101,28 +119,20 @@ export default function HorizontalScrollableCards() {
           }
         }
         
-        if (!gamingRes.ok || !normalRes.ok) {
+        if (!normalRes.ok) {
           throw new Error('Failed to fetch collections');
         }
         
-        const gamingData = await gamingRes.json();
         const normalData = await normalRes.json();
-        
-        const gamingCollections = gamingData.items || [];
         const normalCollections = normalData.items || [];
         
-        // Use settings to determine how many collections to show
-        const gamingToShow = settings.showGamingSection 
-          ? gamingCollections.slice(0, settings.gamingCollectionsLimit)
-          : [];
+        // Only show standard (non-gaming) collections
         const normalToShow = settings.showNonGamingSection
           ? normalCollections.slice(0, settings.nonGamingCollectionsLimit)
           : [];
         
-        const collections = [...gamingToShow, ...normalToShow];
-        
         // Map collections to match the Drink type
-        const mappedCollections = collections.map((collection: any) => ({
+        const mappedCollections = normalToShow.map((collection: any) => ({
           id: collection._id,
           name: collection.name,
           image: collection.heroImage || collection.image || '/images/card.webp',
@@ -130,7 +140,8 @@ export default function HorizontalScrollableCards() {
           productsCount: collection.Products?.length || 0
         }));
         
-        console.log('Collections loaded:', mappedCollections.length);
+        console.log('Featured products loaded:', featured.length);
+        console.log('Standard collections loaded:', mappedCollections.length);
         setSampleDrinks(mappedCollections);
       } catch (error) {
         console.error("Error fetching collections:", error);
@@ -224,6 +235,22 @@ export default function HorizontalScrollableCards() {
 
       <div>
         <div className="grid grid-cols-1 min-[250px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 ml-3 sm:ml-20 xl:gap-8 xl:ml-30 xl:mr-30">
+          {/* Featured Products (First 2) */}
+          {featuredProducts.map((drink, index) => (
+            <Suspense
+              fallback={
+                <div className="relative bg-[#1a1816] rounded-2xl p-4 text-white shadow-lg flex flex-col h-[380px] w-[240px]" />
+              }
+              key={`featured-${drink.id}`}
+            >
+              <ProductCard
+                drink={drink}
+                href={`${index === 0 ? '/gamecollections' : '/custom-designer'}`}
+              />
+            </Suspense>
+          ))}
+          
+          {/* Standard Collections */}
           {sampleDrinks.map((drink, index) => (
             <Suspense
               fallback={
@@ -233,7 +260,7 @@ export default function HorizontalScrollableCards() {
             >
               <ProductCard
                 drink={drink}
-                href={drink.type === 'gaming' ? "/gamecollections" : `/All?collection=${drink.id}`}
+                href={`/All?collection=${drink.id}`}
               />
             </Suspense>
           ))}

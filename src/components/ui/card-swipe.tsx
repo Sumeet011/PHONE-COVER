@@ -1,8 +1,9 @@
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import Image from "next/image"
 import { Swiper, SwiperSlide } from "swiper/react"
+import type { Swiper as SwiperType } from "swiper"
 
 import "swiper/css/effect-cards"
 import { EffectCards } from "swiper/modules"
@@ -14,7 +15,7 @@ import { Autoplay, Pagination, Navigation } from "swiper/modules"
 import { Badge } from "@/components/ui/badge"
 
 interface CarouselProps {
-  images: { src: string; alt: string }[]
+  images: { src: string; alt: string; level?: number }[]
   autoplayDelay?: number
   slideShadows?: boolean
   collectionName?: string
@@ -28,6 +29,8 @@ export const CardSwipe: React.FC<CarouselProps> = ({
   collectionName = "Spider Man",
   alignLeft = false,
 }) => {
+  const [activeIndex, setActiveIndex] = useState(0)
+  const currentLevel = images[activeIndex]?.level
   const css = `
     .swiper {
       width: 200px !important; /* fixed width for horizontal layout */
@@ -69,7 +72,7 @@ export const CardSwipe: React.FC<CarouselProps> = ({
             <h3 className={`font-bold tracking-tight opacity-85 ${alignLeft ? 'text-lg mb-2' : 'text-2xl md:text-3xl'}`}>{collectionName}</h3>
           </div>
 
-          <div className={`flex items-center ${alignLeft ? 'justify-start' : 'justify-center'}`}>
+          <div className={`flex flex-col items-center ${alignLeft ? 'justify-start' : 'justify-center'}`}>
             <Swiper
                 effect={"cards"}
                 grabCursor={true}
@@ -79,6 +82,11 @@ export const CardSwipe: React.FC<CarouselProps> = ({
                   slideShadows: slideShadows,
                 }}
                 modules={[EffectCards, Pagination, Navigation]}
+                onSlideChange={(swiper: SwiperType) => {
+                  // Calculate the real index (accounting for loop mode)
+                  const realIndex = swiper.realIndex % images.length
+                  setActiveIndex(realIndex)
+                }}
               >
                 {images.map((image, index) => (
                   <SwiperSlide key={index}>
@@ -107,6 +115,14 @@ export const CardSwipe: React.FC<CarouselProps> = ({
                   </SwiperSlide>
                 ))}
               </Swiper>
+              
+              {/* Level indicator - only show if currentLevel exists */}
+              {currentLevel && (
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  <span className="text-purple-500 text-lg">⭐</span>
+                  <span className="text-white font-semibold text-sm">Level {currentLevel}</span>
+                </div>
+              )}
           </div>
         </div>
       </div>

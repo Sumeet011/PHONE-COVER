@@ -3,7 +3,7 @@ import { CardSwipe } from "@/components/ui/card-swipe";
 import React, { useEffect, useState } from "react";
 
 interface SwipeCardProps {
-  images?: Array<{ src: string; alt: string }>;
+  images?: Array<{ src: string; alt: string; level?: number }>;
   slideShadows?: boolean;
   collectionName?: string;
   alignLeft?: boolean;

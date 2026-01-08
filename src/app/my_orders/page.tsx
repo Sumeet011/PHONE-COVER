@@ -21,6 +21,7 @@ type OrderItem = {
   itemType?: string;
   collectionId?: string;
   collectionName?: string;
+  level?: number;
 };
 
 type ShippingAddress = {
@@ -55,12 +56,28 @@ type Order = {
   courierPartner?: string;
   createdAt: string;
   updatedAt: string;
+  returnRequest?: {
+    isRequested: boolean;
+    requestedAt: string;
+    items: Array<{
+      productId: string;
+      productName: string;
+      phoneModel: string;
+      quantity: number;
+      reason: string;
+    }>;
+    status: string;
+  };
 };
 
 const MyOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState("");
+  const [returningOrderId, setReturningOrderId] = useState<string | null>(null);
+  const [selectedReturnItems, setSelectedReturnItems] = useState<{[key: string]: {selected: boolean, reason: string, index: number, type: 'item' | 'plate'}}>({});
+  const [showReturnDialog, setShowReturnDialog] = useState(false);
+  const [returnReason, setReturnReason] = useState("");
 
   // Fetch orders from backend
   useEffect(() => {
@@ -124,6 +141,140 @@ const MyOrders = () => {
       position: "top-center",
       autoClose: 2000
     });
+  };
+
+  const handleReturnClick = (orderId: string) => {
+    setReturningOrderId(orderId);
+    setSelectedReturnItems({});
+  };
+
+  const handleCancelReturn = () => {
+    setReturningOrderId(null);
+    setSelectedReturnItems({});
+    setShowReturnDialog(false);
+    setReturnReason("");
+  };
+
+  const handleToggleReturnItem = (order: Order, itemIndex: number) => {
+    const item = order.items[itemIndex];
+    const itemKey = `item_${itemIndex}_${item.productName}`;
+    setSelectedReturnItems(prev => ({
+      ...prev,
+      [itemKey]: {
+        selected: !prev[itemKey]?.selected,
+        reason: prev[itemKey]?.reason || "",
+        index: itemIndex,
+        type: 'item'
+      }
+    }));
+  };
+
+  const handleToggleReturnPlate = (order: Order, plateIndex: number) => {
+    const plate = order.plates[plateIndex];
+    const plateKey = `plate_${plateIndex}_${plate.collectionName}`;
+    setSelectedReturnItems(prev => ({
+      ...prev,
+      [plateKey]: {
+        selected: !prev[plateKey]?.selected,
+        reason: prev[plateKey]?.reason || "",
+        index: plateIndex,
+        type: 'plate'
+      }
+    }));
+  };
+
+  const handleSubmitReturnRequest = async () => {
+    if (!returningOrderId) return;
+
+    const order = orders.find(o => o._id === returningOrderId);
+    if (!order) return;
+
+    const selectedItems = Object.entries(selectedReturnItems)
+      .filter(([_, data]) => data.selected && data.type === 'item')
+      .map(([key, data]) => {
+        const index = data.index;
+        const item = order.items[index];
+        return {
+          type: 'item',
+          itemIndex: index,
+          productId: item.productId,
+          productName: item.productName,
+          phoneModel: item.phoneModel,
+          quantity: item.quantity,
+          reason: returnReason || data.reason || "No reason provided"
+        };
+      });
+    const selectedPlates = Object.entries(selectedReturnItems)
+      .filter(([_, data]) => data.selected && data.type === 'plate')
+      .map(([key, data]) => {
+        const index = data.index;
+        const plate = order.plates[index];
+        return {
+          type: 'plate',
+          plateIndex: index,
+          collectionId: plate.collectionId,
+          collectionName: plate.collectionName,
+          quantity: plate.quantity,
+          reason: returnReason || data.reason || "No reason provided"
+        };
+      });
+
+    if (selectedItems.length === 0 && selectedPlates.length === 0) {
+      toast.error("Please select at least one item or plate to return");
+      return;
+    }
+
+    if (!returnReason.trim()) {
+      toast.error("Please provide a reason for return");
+      return;
+    }
+
+    try {
+      const User = localStorage.getItem('USER');
+      const userId = User ? JSON.parse(User).id : null;
+
+      const response = await fetch(`${BACKEND_URL}/api/orders/return-request`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          orderId: returningOrderId,
+          userId,
+          items: selectedItems,
+          plates: selectedPlates
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success("Return request submitted successfully!");
+        handleCancelReturn();
+        // Refresh orders to show updated return status
+        const fetchOrders = async () => {
+          try {
+            const response = await fetch(`${BACKEND_URL}/api/orders/userorders`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId })
+            });
+            const data = await response.json();
+            if (data.success) {
+              setOrders(data.orders || []);
+            }
+          } catch (error) {
+            console.error('Error refreshing orders:', error);
+          }
+        };
+        fetchOrders();
+      } else {
+        toast.error(data.message || "Failed to submit return request");
+      }
+    } catch (error) {
+      toast.error("Failed to submit return request");
+      console.error('Error:', error);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -257,7 +408,9 @@ const MyOrders = () => {
                             }
                             groupedItems[key].items.push(item);
                             groupedItems[key].totalQty += item.quantity;
-                            groupedItems[key].totalPrice += item.price * item.quantity;
+                            const itemTotal = item.price * item.quantity;
+                            const plateTotal = item.hasPlate && item.platePrice ? item.platePrice : 0;
+                            groupedItems[key].totalPrice += itemTotal + plateTotal;
                           } else {
                             regularItems.push(item);
                           }
@@ -273,6 +426,11 @@ const MyOrders = () => {
                                     {data.items[0].collectionName}
                                   </span>
                                   <span className="text-xs text-gray-500">Collection ({data.items.length} cards)</span>
+                                  {data.items.filter(i => i.hasPlate).length > 0 && (
+                                    <span className="text-xs text-blue-400 block">
+                                      +{data.items.filter(i => i.hasPlate).length} Plate(s)
+                                    </span>
+                                  )}
                                   <span className="text-xs text-yellow-400 block mt-1">
                                     ⏳ Cards will be revealed on delivery
                                   </span>
@@ -289,10 +447,13 @@ const MyOrders = () => {
                                 <div className="flex-1">
                                   <span className="block">{item.productName}</span>
                                   <span className="text-xs text-gray-500">{item.phoneModel}</span>
+                                  {item.hasPlate && (
+                                    <span className="text-xs text-blue-400">+Plate (₹{item.platePrice})</span>
+                                  )}
                                 </div>
                                 <div className="text-right">
                                   <span className="block">x{item.quantity}</span>
-                                  <span className="text-xs text-gray-500">₹{item.price * item.quantity}</span>
+                                  <span className="text-xs text-gray-500">₹{item.price * item.quantity + (item.hasPlate && item.platePrice ? item.platePrice : 0)}</span>
                                 </div>
                               </li>
                             ))}
@@ -311,14 +472,40 @@ const MyOrders = () => {
                                 From: {item.collectionName}
                               </span>
                             )}
+                            {item.level && (
+                              <span className="text-xs text-purple-400 block font-semibold">
+                                ⭐ Level {item.level}
+                              </span>
+                            )}
+                            {item.hasPlate && (
+                              <span className="text-xs text-blue-400">
+                                +Plate (₹{item.platePrice})
+                              </span>
+                            )}
                           </div>
                           <div className="text-right">
                             <span className="block">x{item.quantity}</span>
-                            <span className="text-xs text-gray-500">₹{item.price * item.quantity}</span>
+                            <span className="text-xs text-gray-500">₹{item.price * item.quantity + (item.hasPlate && item.platePrice ? item.platePrice : 0)}</span>
                           </div>
                         </li>
                       ));
                     })()}
+                    
+                    {/* Show plates separately */}
+                    {order.plates && order.plates.length > 0 && order.plates.map((plate: any, idx: number) => (
+                      <li key={`plate-${idx}`} className="flex justify-between items-start border-l-2 border-blue-400 pl-2 mt-2">
+                        <div className="flex-1">
+                          <span className="block font-semibold text-blue-400">
+                            🎴 {plate.collectionName} - Plates
+                          </span>
+                          <span className="text-xs text-gray-500">Gaming Collection Plates</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="block">x{plate.quantity}</span>
+                          <span className="text-xs text-gray-500">₹{plate.totalPrice}</span>
+                        </div>
+                      </li>
+                    ))}
                   </ul>
                 </div>
 
@@ -419,7 +606,30 @@ const MyOrders = () => {
                   <p className="text-xs">{order.shippingAddress.country}</p>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  {/* Return Button - only show for delivered orders without existing return request */}
+                  {order.status === 'Delivered' && !order.returnRequest?.isRequested && (
+                    <button
+                      onClick={() => handleReturnClick(order._id)}
+                      className={`${
+                        returningOrderId === order._id 
+                          ? 'bg-red-500 hover:bg-red-600' 
+                          : 'bg-yellow-500 hover:bg-yellow-600'
+                      } px-4 py-4 rounded-full flex items-center justify-center gap-2 text-black transition-all duration-300 hover:scale-105 font-semibold`}
+                    >
+                      {returningOrderId === order._id ? 'Cancel' : 'Return'}
+                    </button>
+                  )}
+
+                  {/* Show return status if return requested */}
+                  {order.returnRequest?.isRequested && (
+                    <div className="px-4 py-2 rounded-full bg-orange-500/20 text-orange-400 flex items-center gap-2 font-semibold">
+                      <span>🔄</span>
+                      <span>Return {order.returnRequest.status}</span>
+                    </div>
+                  )}
+
+                  {/* Download Invoice Button */}
                   <button
                     onClick={() => handleDownloadInvoice(order)}
                     className="bg-lime-400 hover:bg-lime-500 px-4 py-4 rounded-full flex items-center justify-center gap-2 text-black transition-all duration-300 hover:scale-105"
@@ -427,11 +637,110 @@ const MyOrders = () => {
                     <Download className="w-5 h-5" />
                   </button>
                 </div>
+
+                {/* Return Items Selection */}
+                {returningOrderId === order._id && (
+                  <div className="mt-4 p-4 bg-[#1a1a1a] rounded-lg border-2 border-yellow-500">
+                    <h3 className="font-semibold text-yellow-400 mb-3">Select items to return:</h3>
+                    <div className="space-y-2">
+                      {/* Product items */}
+                      {order.items.map((item, idx) => {
+                        const itemKey = `item_${idx}_${item.productName}`;
+                        const isSelected = selectedReturnItems[itemKey]?.selected || false;
+                        return (
+                          <label 
+                            key={itemKey}
+                            className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
+                              isSelected ? 'bg-yellow-500/20 border border-yellow-500' : 'bg-[#131313] hover:bg-[#1f1f1f]'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleReturnItem(order, idx)}
+                              className="w-5 h-5 accent-yellow-500"
+                            />
+                            <div className="flex-1 text-sm">
+                              <div className="font-medium">{item.productName}</div>
+                              <div className="text-gray-400 text-xs">{item.phoneModel} - Qty: {item.quantity}</div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                      {/* Plates */}
+                      {order.plates && order.plates.length > 0 && order.plates.map((plate, idx) => {
+                        const plateKey = `plate_${idx}_${plate.collectionName}`;
+                        const isSelected = selectedReturnItems[plateKey]?.selected || false;
+                        return (
+                          <label
+                            key={plateKey}
+                            className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
+                              isSelected ? 'bg-blue-500/20 border border-blue-500' : 'bg-[#131313] hover:bg-[#1f1f1f]'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleReturnPlate(order, idx)}
+                              className="w-5 h-5 accent-blue-500"
+                            />
+                            <div className="flex-1 text-sm">
+                              <div className="font-medium text-blue-400">{plate.collectionName} Plate</div>
+                              <div className="text-gray-400 text-xs">Qty: {plate.quantity}</div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    
+                    {Object.values(selectedReturnItems).some(item => item.selected) && (
+                      <button
+                        onClick={() => setShowReturnDialog(true)}
+                        className="mt-4 w-full bg-lime-400 hover:bg-lime-500 px-4 py-3 rounded-lg text-black font-semibold transition-all duration-300"
+                      >
+                        Submit Return Request
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Return Reason Dialog */}
+      {showReturnDialog && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#131313] rounded-xl p-6 max-w-md w-full border border-lime-400">
+            <h2 className="text-2xl font-bold text-lime-400 mb-4">Return Reason</h2>
+            <p className="text-gray-300 mb-4">Please provide a reason for returning the selected items:</p>
+            
+            <textarea
+              value={returnReason}
+              onChange={(e) => setReturnReason(e.target.value)}
+              placeholder="Enter reason for return..."
+              className="w-full bg-[#1a1a1a] text-white border border-gray-700 rounded-lg p-3 min-h-[120px] focus:outline-none focus:border-lime-400"
+            />
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleCancelReturn}
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg font-semibold transition-all duration-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitReturnRequest}
+                disabled={!returnReason.trim()}
+                className="flex-1 bg-lime-400 hover:bg-lime-500 text-black px-4 py-3 rounded-lg font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Submit Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

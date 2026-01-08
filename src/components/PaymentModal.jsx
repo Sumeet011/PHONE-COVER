@@ -181,7 +181,9 @@ const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData,
       selectedModel: item.selectedModel || '',
       type: item.type || 'product',
       collectionName: item.collectionName || '',
-      customDesign: item.customDesign || undefined
+      customDesign: item.customDesign || undefined,
+      plateQuantity: item.plateQuantity || 0,
+      platePrice: item.platePrice || 0
     }));
 
     // Format address for backend

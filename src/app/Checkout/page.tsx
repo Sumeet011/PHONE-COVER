@@ -19,6 +19,12 @@ interface CartItem {
   selectedBrand: string;
   selectedModel: string;
   type: string;
+  collectionName?: string;
+  isGamingCollection?: boolean;
+  plateQuantity?: number;
+  platePrice?: number;
+  plateTotalPrice?: number;
+  customDesign?: any;
 }
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -92,20 +98,30 @@ const CheckoutPage = () => {
 
       if (result.success && result.data && result.data.items) {
         // Transform cart items to match component structure
-        const transformedItems = result.data.items.map((item: any) => ({
-          _id: item._id,
-          productId: item.productId,
-          name: item.productDetails?.name || 'Product',
-          packSize: `${item.selectedBrand} - ${item.selectedModel}`,
-          price: item.price,
-          quantity: item.quantity,
-          image: item.productDetails?.image || '',
-          selectedBrand: item.selectedBrand,
-          selectedModel: item.selectedModel,
-          type: item.type,
-          customDesign: item.customDesign,
-          collectionName: item.collectionName
-        }));
+        const transformedItems = result.data.items.map((item: any) => {
+          const isGamingCollection = item.productDetails?.type === 'gaming';
+          const plateCount = item.plateQuantity || 0;
+          const platePrice = item.platePrice || 0;
+          
+          return {
+            _id: item._id,
+            productId: item.productId,
+            name: item.productDetails?.name || 'Product',
+            packSize: `${item.selectedBrand} - ${item.selectedModel}`,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.productDetails?.image || '',
+            selectedBrand: item.selectedBrand,
+            selectedModel: item.selectedModel,
+            type: item.type,
+            customDesign: item.customDesign,
+            collectionName: item.productDetails?.name || item.collectionName,
+            isGamingCollection,
+            plateQuantity: plateCount,
+            platePrice: platePrice,
+            plateTotalPrice: plateCount * platePrice
+          };
+        });
 
         if (transformedItems.length === 0) {
           toast.info("Your cart is empty. Redirecting...");
@@ -217,7 +233,11 @@ const CheckoutPage = () => {
   };
 
   // Calculate totals
-  const subtotal = cartItems.reduce((sum: number, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = cartItems.reduce((sum: number, item) => {
+    const itemTotal = item.price * item.quantity;
+    const plateTotal = (item.plateTotalPrice || 0);
+    return sum + itemTotal + plateTotal;
+  }, 0);
   const shipping = subtotal > 0 ? 5 : 0;
   const totalDiscountAmount = appliedCoupons.reduce((sum, coupon) => sum + coupon.discountAmount, 0);
   const totalCost = subtotal - totalDiscountAmount + shipping;

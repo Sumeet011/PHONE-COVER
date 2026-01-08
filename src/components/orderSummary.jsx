@@ -38,18 +38,30 @@ const OrderSummary = ({
       {/* Cart Items Preview */}
       {cartItems && cartItems.length > 0 && (
         <div className="mb-4 max-h-40 overflow-y-auto border-b border-gray-700 pb-3 space-y-2">
-          {cartItems.map((item, index) => (
-            <div key={item._id || index} className="flex justify-between items-start text-sm">
-              <div className="flex-1 pr-2">
-                <p className="text-white truncate font-medium">{item.name}</p>
-                <p className="text-gray-400 text-xs">{item.packSize}</p>
+          {cartItems.map((item, index) => {
+            const itemPrice = item.price * item.quantity;
+            const platePrice = item.plateTotalPrice || 0;
+            const totalItemPrice = itemPrice + platePrice;
+            
+            return (
+              <div key={item._id || index} className="flex justify-between items-start text-sm">
+                <div className="flex-1 pr-2">
+                  <p className="text-white truncate font-medium">{item.name}</p>
+                  <p className="text-gray-400 text-xs">{item.packSize}</p>
+                  {item.isGamingCollection && item.plateQuantity > 0 && (
+                    <p className="text-blue-400 text-xs">+{item.plateQuantity} Plate{item.plateQuantity > 1 ? 's' : ''}</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p className="text-white">x{item.quantity}</p>
+                  <p className="text-gray-400 text-xs">₹{totalItemPrice.toFixed(2)}</p>
+                  {item.isGamingCollection && platePrice > 0 && (
+                    <p className="text-blue-400 text-xs">+₹{platePrice.toFixed(2)}</p>
+                  )}
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-white">x{item.quantity}</p>
-                <p className="text-gray-400 text-xs">₹{(item.price * item.quantity).toFixed(2)}</p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       

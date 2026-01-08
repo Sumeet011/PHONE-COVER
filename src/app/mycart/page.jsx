@@ -95,6 +95,13 @@ const CartPage = () => {
 
       if (result.success) {
         console.log('Raw cart items from backend:', result.data.items);
+        console.log('Checking plate data for collections:', result.data.items.filter(i => i.type === 'collection').map(i => ({
+          name: i.productDetails?.name,
+          type: i.productDetails?.type,
+          plateQuantity: i.plateQuantity,
+          platePrice: i.platePrice,
+          productDetailsPlatePrice: i.productDetails?.plateprice
+        })));
         
         // Load applied coupons from cart
         if (result.data.appliedCoupons) {
@@ -152,6 +159,10 @@ const CartPage = () => {
           
           // Handle collection items
           if (item.type === 'collection') {
+            const isGamingCollection = item.productDetails?.type === 'gaming';
+            const plateCount = item.plateQuantity || 0;
+            const platePrice = item.platePrice || 0;
+            
             return {
               _id: item._id,
               productId: item.productId,
@@ -160,11 +171,15 @@ const CartPage = () => {
               packSize: `${item.selectedBrand} - ${item.selectedModel}`,
               price: item.price,
               quantity: item.quantity,
-              image: item.productDetails?.image || item.productDetails?.heroImage || placeholderImage,
+              image: item.productDetails?.heroImage || item.productDetails?.image || placeholderImage,
               selectedBrand: item.selectedBrand,
               selectedModel: item.selectedModel,
               type: item.type,
-              collectionName: item.productDetails?.name || 'Collection'
+              collectionName: item.productDetails?.name || 'Collection',
+              isGamingCollection,
+              plateQuantity: plateCount,
+              platePrice: platePrice,
+              plateTotalPrice: plateCount * platePrice
             };
           }
           
@@ -224,6 +239,12 @@ const CartPage = () => {
       return;
     }
 
+    // For gaming collections, ensure plates >= cards
+    let newPlateQuantity = item.plateQuantity;
+    if (item.isGamingCollection && newPlateQuantity < newQuantity) {
+      newPlateQuantity = newQuantity;
+    }
+
     try {
       
           const userData = localStorage.getItem('USER');
@@ -235,7 +256,10 @@ const CartPage = () => {
           'Content-Type': 'application/json',
           'User-Id': userId
         },
-        body: JSON.stringify({ quantity: newQuantity })
+        body: JSON.stringify({ 
+          quantity: newQuantity,
+          plateQuantity: newPlateQuantity
+        })
       });
 
       const result = await response.json();
@@ -244,7 +268,12 @@ const CartPage = () => {
         // Update local state
         setCartItems(prevItems =>
           prevItems.map(i =>
-            i._id === itemId ? { ...i, quantity: newQuantity } : i
+            i._id === itemId ? { 
+              ...i, 
+              quantity: newQuantity,
+              plateQuantity: newPlateQuantity,
+              plateTotalPrice: newPlateQuantity * (i.platePrice || 0)
+            } : i
           )
         );
         toast.success("Cart updated", {
@@ -268,6 +297,84 @@ const CartPage = () => {
     } catch (error) {
       console.error('Error updating cart:', error);
       toast.error("Failed to update quantity", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }
+  };
+
+  const handlePlateQuantityChange = async (itemId, delta) => {
+    const item = cartItems.find(i => i._id === itemId);
+    if (!item) return;
+
+    const newPlateQuantity = (item.plateQuantity || 0) + delta;
+    
+    // Plates must be >= cards
+    if (newPlateQuantity < item.quantity) {
+      toast.warning(`Plate quantity must be at least ${item.quantity} (card count)`, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return;
+    }
+
+    try {
+      const userData = localStorage.getItem('USER');
+      const userId = userData ? JSON.parse(userData).id : null;
+      
+      const response = await fetch(`${BACKEND_URL}/api/cart/update/${item.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Id': userId
+        },
+        body: JSON.stringify({ 
+          quantity: item.quantity,
+          plateQuantity: newPlateQuantity
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setCartItems(prevItems =>
+          prevItems.map(i =>
+            i._id === itemId ? { 
+              ...i, 
+              plateQuantity: newPlateQuantity,
+              plateTotalPrice: newPlateQuantity * (i.platePrice || 0)
+            } : i
+          )
+        );
+        toast.success("Plate quantity updated", {
+          position: "top-right",
+          autoClose: 2000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      } else {
+        toast.error(result.message || "Failed to update plate quantity", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating plate quantity:', error);
+      toast.error("Failed to update plate quantity", {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -306,9 +413,6 @@ const CartPage = () => {
   };
 
   const handleClearCart = async () => {
-    if (!window.confirm("Are you sure you want to clear your cart?")) {
-      return;
-    }
 
     try {
       
@@ -318,7 +422,7 @@ const CartPage = () => {
       const response = await fetch(`${BACKEND_URL}/api/cart/clear`, {
         method: 'DELETE',
         headers: {
-          'X-User-Id': userId
+          'User-Id': userId
         }
       });
 
@@ -326,6 +430,7 @@ const CartPage = () => {
 
       if (result.success) {
         setCartItems([]);
+        setAppliedCoupons([]);
         toast.success("Cart cleared");
       } else {
         toast.error(result.message || "Failed to clear cart");
@@ -430,7 +535,11 @@ const CartPage = () => {
   };
 
   const totalItems = cartItems.reduce((acc, item) => acc + item.quantity, 0);
-  const subtotal = cartItems.map(item => item.price * item.quantity).reduce((acc, price) => acc + price, 0);
+  const subtotal = cartItems.reduce((acc, item) => {
+    const itemTotal = item.price * item.quantity;
+    const plateTotal = (item.plateTotalPrice || 0);
+    return acc + itemTotal + plateTotal;
+  }, 0);
   const shipping = subtotal > 0 ? 5 : 0;
   const totalDiscountAmount = appliedCoupons.reduce((sum, coupon) => sum + coupon.discountAmount, 0);
   const totalCost = subtotal - totalDiscountAmount + shipping;
@@ -514,12 +623,25 @@ const CartPage = () => {
                             Collection
                           </span>
                         )}
+                        {item.isGamingCollection && item.plateQuantity > 0 && (
+                          <span className="text-xs text-blue-400 bg-blue-400/20 px-2 py-0.5 rounded">
+                            +{item.plateQuantity} Plate{item.plateQuantity > 1 ? 's' : ''}
+                          </span>
+                        )}
                         {item.type === 'custom-design' && (
                           <span className="text-xs text-purple-400 bg-purple-400/20 px-2 py-0.5 rounded">
                             Custom Design
                           </span>
                         )}
                       </div>
+                      
+                      {/* Show plate price breakdown for gaming collections */}
+                      {item.isGamingCollection && item.plateQuantity > 0 && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Cards: ₹{item.price} | Plates: ₹{item.platePrice} × {item.plateQuantity}
+                        </p>
+                      )}
+                      
                       <button
                         className="text-red-500 cursor-pointer text-sm mt-1 hover:underline"
                         onClick={() => handleRemoveItem(item._id, item.id)}
@@ -530,22 +652,49 @@ const CartPage = () => {
                   </div>
 
                   <div className="flex flex-col gap-2 sm:ml-auto">
-                    {/* Quantity Controls */}
-                    <div className="flex items-center gap-2 justify-start sm:justify-end">
-                      <button
-                        className="w-8 h-8 cursor-pointer bg-gray-800 hover:bg-gray-700 rounded"
-                        onClick={() => handleQuantityChange(item._id, -1)}
-                      >
-                        -
-                      </button>
-                      <span className="text-lg font-semibold w-8 text-center">{item.quantity}</span>
-                      <button
-                        className="w-8 h-8 cursor-pointer bg-gray-800 hover:bg-gray-700 rounded"
-                        onClick={() => handleQuantityChange(item._id, 1)}
-                      >
-                        +
-                      </button>
+                    {/* Card Quantity Controls */}
+                    <div className="flex flex-col gap-1">
+                      {item.isGamingCollection && (
+                        <span className="text-xs text-gray-400 text-right">Cards:</span>
+                      )}
+                      <div className="flex items-center gap-2 justify-start sm:justify-end">
+                        <button
+                          className="w-8 h-8 cursor-pointer bg-gray-800 hover:bg-gray-700 rounded"
+                          onClick={() => handleQuantityChange(item._id, -1)}
+                        >
+                          -
+                        </button>
+                        <span className="text-lg font-semibold w-8 text-center">{item.quantity}</span>
+                        <button
+                          className="w-8 h-8 cursor-pointer bg-gray-800 hover:bg-gray-700 rounded"
+                          onClick={() => handleQuantityChange(item._id, 1)}
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Plate Quantity Controls (Gaming Collections Only) */}
+                    {item.isGamingCollection && item.plateQuantity > 0 && (
+                      <div className="flex flex-col gap-1 mt-1">
+                        <span className="text-xs text-gray-400 text-right">Plates:</span>
+                        <div className="flex items-center gap-2 justify-start sm:justify-end">
+                          <button
+                            className="w-8 h-8 cursor-pointer bg-gray-800 hover:bg-gray-700 rounded"
+                            onClick={() => handlePlateQuantityChange(item._id, -1)}
+                          >
+                            -
+                          </button>
+                          <span className="text-lg font-semibold w-8 text-center">{item.plateQuantity}</span>
+                          <button
+                            className="w-8 h-8 cursor-pointer bg-gray-800 hover:bg-gray-700 rounded"
+                            onClick={() => handlePlateQuantityChange(item._id, 1)}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Collection Progress Bar (only for collection type) */}
                     {item.type === 'collection' && (
@@ -627,8 +776,13 @@ const CartPage = () => {
                     {/* Price */}
                     <div className="text-right mt-2">
                       <p className="font-semibold">₹{item.price.toFixed(2)}</p>
+                      {item.isGamingCollection && item.plateQuantity > 0 && (
+                        <p className="text-xs text-blue-400">
+                          +₹{item.plateTotalPrice.toFixed(2)} plates
+                        </p>
+                      )}
                       <p className="text-sm text-gray-400">
-                        Total: ₹{(item.price * item.quantity).toFixed(2)}
+                        Total: ₹{((item.price * item.quantity) + (item.plateTotalPrice || 0)).toFixed(2)}
                       </p>
                     </div>
                   </div>

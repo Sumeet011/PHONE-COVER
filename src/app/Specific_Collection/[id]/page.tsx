@@ -36,6 +36,7 @@ type Collection = {
   heroImage?: string;
   type?: string;
   price?: number;
+  plateprice?: number;
   Products?: Product[];
   Features?: string[];
 };
@@ -53,6 +54,7 @@ const Specific_Collection = () => {
   const [selectedBrand, setSelectedBrand] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1);
+  const [plateQuantity, setPlateQuantity] = useState<number>(1);
   const [currentCardIndex, setCurrentCardIndex] = useState<number>(0);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
@@ -81,6 +83,11 @@ const Specific_Collection = () => {
 
         if (result.success && result.data) {
           setCollection(result.data);
+          
+          // For gaming collections, ensure plateQuantity is at least equal to quantity
+          if (result.data.type === 'gaming') {
+            setPlateQuantity(Math.max(quantity, plateQuantity));
+          }
 
           // Fetch full product details for each product ID in the collection
           if (result.data.Products && Array.isArray(result.data.Products)) {
@@ -225,7 +232,26 @@ const Specific_Collection = () => {
 
   const handleQuantityChange = useCallback((newQuantity: number) => {
     setQuantity(newQuantity);
-  }, []);
+    // For gaming collections, ensure plates >= cards
+    if (collection?.type === 'gaming' && plateQuantity < newQuantity) {
+      setPlateQuantity(newQuantity);
+    }
+  }, [collection?.type, plateQuantity]);
+
+  const handlePlateQuantityChange = useCallback((newQuantity: number) => {
+    console.log('🎯 handlePlateQuantityChange called with:', newQuantity, 'Current quantity:', quantity);
+    // Plates must always be >= cards quantity
+    if (newQuantity >= quantity) {
+      console.log('✅ Setting plateQuantity to:', newQuantity);
+      setPlateQuantity(newQuantity);
+    } else {
+      console.log('❌ Rejected: Plates must be >= cards');
+      toast.warning("Plate quantity must be equal to or greater than card quantity", {
+        position: "top-right",
+        autoClose: 2000,
+      });
+    }
+  }, [quantity]);
 
   const handleBuyNow = useCallback(async () => {
     if (!selectedBrand || !selectedModel) {
@@ -270,7 +296,7 @@ const Specific_Collection = () => {
         ? collection.price 
         : (currentProduct?.price || 0);
       
-      const cartItem = {
+      const cartItem: any = {
         type: "collection",
         productId: collectionId,
         price: itemPrice,
@@ -278,6 +304,17 @@ const Specific_Collection = () => {
         selectedBrand: selectedBrand,
         selectedModel: selectedModel,
       };
+      
+      // For gaming collections, add plate information
+      if (collection?.type === 'gaming') {
+        console.log('🎮 Gaming collection - Current state:', {
+          quantity,
+          plateQuantity,
+          collectionPlatePrice: collection?.plateprice
+        });
+        cartItem.plateQuantity = plateQuantity;
+        cartItem.platePrice = collection?.plateprice || 0;
+      }
 
       console.log("Sending cart item:", cartItem);
 
@@ -335,7 +372,7 @@ const Specific_Collection = () => {
         draggable: true,
       });
     }
-  }, [selectedBrand, selectedModel, quantity, collectionId, currentProduct, collectionInfo, BACKEND_URL]);
+  }, [selectedBrand, selectedModel, quantity, plateQuantity, collection, collectionId, currentProduct, collectionInfo, BACKEND_URL]);
 
   // NOW CONDITIONAL RETURNS AFTER ALL HOOKS
   if (loading) {
@@ -425,9 +462,6 @@ const Specific_Collection = () => {
                 <span className="bg-[#9AE600] text-black px-3 py-1 rounded-full text-sm font-bold">
                   {currentProduct?.level || "N/A"}
                 </span>
-                <span className="bg-gray-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-                  {currentProduct?.type || "Standard"}
-                </span>
               </div>
 
               <p className="text-gray-300 leading-relaxed mb-4">
@@ -459,9 +493,21 @@ const Specific_Collection = () => {
                       : (currentProduct?.price || "N/A")}
                   </p>
                   {collection?.type === 'gaming' && (
-                    <p className="text-gray-400 text-xs mt-1">
-                      Complete collection price (5 cards)
-                    </p>
+                    <>
+                      <p className="text-gray-400 text-xs mt-1">
+                        Complete collection price (5 cards)
+                      </p>
+                      {collection?.plateprice && (
+                        <>
+                          <p className="text-[#9AE600] font-medium text-xl mt-3">
+                            ₹{collection.plateprice}
+                          </p>
+                          <p className="text-gray-400 text-xs mt-1">
+                            Per plate/accessory
+                          </p>
+                        </>
+                      )}
+                    </>
                   )}
                   <h4 className="font-semibold text-white mb-2 mt-4">
                     Material:
@@ -476,35 +522,28 @@ const Specific_Collection = () => {
         </div>
 
         {/* About Section */}
-        <div className="bg-gray-900/30 rounded-lg p-6 border border-gray-800 relative overflow-hidden">
-          <h3 className="text-xl font-bold text-white mb-4">
-            About This Collection
-          </h3>
-          <p className="text-gray-300 mb-4">{collectionInfo.description}</p>
+        <div className="bg-gray-900/30 rounded-lg p-6 border border-gray-800 relative overflow-hidden
+                grid grid-cols-2 gap-12">
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-semibold text-white mb-3">
-                Collection Features:
-              </h4>
-              <ul className="space-y-2">
-                {collectionInfo.features.map((feature: any, index: any) => (
-                  <li
-                    key={index}
-                    className="text-gray-400 text-sm flex items-center"
-                  >
-                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold text-white mb-3">Compatibility:</h4>
-              <p className="text-gray-400 text-sm">{collectionInfo.compatibility}</p>
-            </div>
-          </div>
-        </div>
+  <div>
+    <h3 className="text-xl font-bold text-white mb-4">
+      About This Collection
+    </h3>
+    <p className="text-gray-300 mb-4">
+      {collectionInfo.description}
+    </p>
+  </div>
+
+  <div>
+    <h4 className="font-semibold text-white mb-3">Compatibility:</h4>
+    <p className="text-gray-400 text-sm">
+      {collectionInfo.compatibility}
+    </p>
+  </div>
+
+</div>
+
+
 
         {/* Collapsible Sections */}
         <div className="border-t border-gray-800">
@@ -559,7 +598,7 @@ const Specific_Collection = () => {
 
       {/* Bottom Fixed Controls */}
       <div className="fixed sm:h-18 md:h-20 bottom-0 bg-black flex justify-between items-center left-1 pt-3 pb-3 mb-0 sm:left-0 z-50 w-full">
-        <div className="flex items-center ml-1 sm:ml-10">
+        <div className="flex items-center ml-1 sm:ml-10 gap-2 flex-wrap">
           <DropdownButton
             className="mr-2"
             onSelect={handleBrandSelect}
@@ -579,12 +618,36 @@ const Specific_Collection = () => {
             disabled={!selectedBrand}
           />
 
-          <QuantitySelector
-            initialValue={1}
-            min={1}
-            max={10}
-            onChange={handleQuantityChange}
-          />
+          {collection?.type === 'gaming' ? (
+            <>
+              <div className="flex flex-col items-center">
+                <span className="text-white text-xs mb-1">Cards</span>
+                <QuantitySelector
+                  key={`cards-${quantity}`}
+                  initialValue={quantity}
+                  min={1}
+                  max={10}
+                  onChange={handleQuantityChange}
+                />
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-white text-xs mb-1">Plates</span>
+                <QuantitySelector
+                  initialValue={plateQuantity}
+                  min={quantity}
+                  max={20}
+                  onChange={handlePlateQuantityChange}
+                />
+              </div>
+            </>
+          ) : (
+            <QuantitySelector
+              initialValue={1}
+              min={1}
+              max={10}
+              onChange={handleQuantityChange}
+            />
+          )}
         </div>
 
         <div>

@@ -32,7 +32,7 @@ const JersyFont = localFont({
 })
 
 const ProfilePage = () => {
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ;
   const router = useRouter()
   const fileInputRef = useRef(null)
   
@@ -90,10 +90,11 @@ const ProfilePage = () => {
           
           // Each collection becomes ONE SwipeCard with multiple images
           const images = collection.cards?.map(card => {
-            console.log('Card:', card.name, 'Image:', card.image)
+            console.log('Card:', card.name, 'Image:', card.image, 'Level:', card.level)
             return {
               src: card.image || '/images/card.webp',
-              alt: card.name
+              alt: card.name,
+              level: card.level
             }
           }) || []
           
