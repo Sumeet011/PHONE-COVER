@@ -1,0 +1,506 @@
+import React, { useState } from "react";
+import { X, CreditCard, Smartphone, Banknote } from "lucide-react";
+import { toast } from "react-toastify";
+
+const PaymentModal = ({ isOpen, onClose, onSelectPayment, totalAmount, formData, cartItems }) => {
+  const [loading, setLoading] = useState(false);
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  
+
+  if (!isOpen) return null;
+
+  const paymentMethods = [
+    {
+      id: "razorpay",
+      name: "UPI / Card / Netbanking",
+      description: "Pay using Razorpay (UPI, Cards, Wallets)",
+      icon: Smartphone,
+      color: "from-purple-500 to-purple-400",
+      type: "razorpay"
+    },
+    // COD option hidden
+    // {
+    //   id: "cod",
+    //   name: "Cash on Delivery",
+    //   description: "Pay when you receive your order",
+    //   icon: Banknote,
+    //   color: "from-lime-500 to-lime-400",
+    //   type: "cod"
+    // },
+  ];
+
+  // Initialize Razorpay payment
+  const initRazorpay = (order, orderData) => {
+    const options = {
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "YOUR_RAZORPAY_KEY",
+      amount: order.amount,
+      currency: order.currency,
+      name: 'Phone Wraps',
+      description: 'Order Payment',
+      order_id: order.id,
+      handler: async (response) => {
+        setLoading(true);
+        try {
+          // Verify payment and create order on backend
+          const verifyResponse = await fetch(`${BACKEND_URL}/api/orders/verifyRazorpay`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              userId: orderData.userId,
+              items: orderData.items,
+              amount: orderData.amount || totalAmount,
+              address: orderData.address,
+              coupon: orderData.coupon || []
+            })
+          });
+
+          const result = await verifyResponse.json();
+          
+          if (result.success) {
+            // Store email in localStorage for guest users to fetch their orders
+            if (orderData.address && orderData.address.email) {
+              localStorage.setItem('userEmail', orderData.address.email);
+            }
+            
+            // ✅ Auto-login: Store user ID and token if returned (for new users or guests)
+            if (result.userId) {
+              localStorage.setItem('USER', JSON.stringify({
+                id: result.userId,
+                isLogedIn: true
+              }));
+              console.log('✅ User auto-logged in with ID:', result.userId);
+            }
+            
+            if (result.token) {
+              localStorage.setItem('token', result.token);
+              console.log('✅ Auth token stored');
+            }
+            
+            if (result.isNewUser) {
+              toast.success('Account created and logged in successfully!', {
+                position: "top-center",
+                autoClose: 2000
+              });
+            }
+            
+            toast.success('Payment successful! Order placed.', {
+              position: "top-center",
+              autoClose: 3000
+            });
+            onClose();
+            // Clear cart and redirect to orders page
+            setTimeout(() => {
+              window.location.href = '/my_orders';
+            }, 1500);
+          } else {
+            toast.error(result.message || 'Payment verification failed');
+          }
+        } catch (error) {
+          console.error('Payment verification error:', error);
+          toast.error('Payment verification failed. Please contact support.');
+        } finally {
+          setLoading(false);
+        }
+      },
+      modal: {
+        ondismiss: () => {
+          console.log('❌ Payment cancelled by user');
+          toast.info('Payment cancelled', {
+            position: "top-center",
+            autoClose: 2000
+          });
+          setLoading(false);
+        }
+      },
+      prefill: {
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        contact: formData.phone
+      },
+      theme: {
+        color: '#84cc16' // lime-500
+      }
+    };
+
+    const rzp = new window.Razorpay(options);
+    
+    rzp.on('payment.failed', function (response) {
+      console.error('❌ Payment failed:', response.error);
+      toast.error(`Payment failed: ${response.error.description}`, {
+        position: "top-center",
+        autoClose: 4000
+      });
+      setLoading(false);
+    });
+    
+    rzp.open();
+  };
+
+  const handlePaymentSelect = async (method) => {
+    if (loading) return;
+
+    console.log("Selected payment method:", method);
+    console.log("Form data:", formData);
+    console.log("Cart items:", cartItems);
+
+    // Validate form data
+    if (!formData || !formData.firstName || !formData.email || !formData.phone) {
+      toast.error("Please fill in all delivery information");
+      console.error('Form validation failed:', formData);
+      return;
+    }
+
+    // Validate cart items
+    if (!cartItems || cartItems.length === 0) {
+      toast.error("Your cart is empty");
+      console.error('Cart validation failed - no items');
+      return;
+    }
+    
+    console.log('Payment validation passed - proceeding with', method);
+
+    // Prepare order data
+    
+    const userData = localStorage.getItem('USER');
+    const userId = userData ? JSON.parse(userData).id : null;
+    
+    // Allow guest checkout - userId can be null
+    console.log('👤 User ID:', userId || 'Guest Checkout');
+
+    // Format items for backend - include all necessary fields including customDesign
+    console.log('🛒 Raw cartItems received in PaymentModal:', cartItems);
+    console.log('🎨 CartItems with customDesign field:', cartItems.map(i => ({
+      name: i.name,
+      type: i.type,
+      hasCustomDesign: !!i.customDesign,
+      customDesignKeys: i.customDesign ? Object.keys(i.customDesign) : [],
+      designImageUrl: i.customDesign?.designImageUrl
+    })));
+    
+    const formattedItems = cartItems.map(item => {
+      const formattedItem = {
+        productId: item.productId || item._id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        selectedBrand: item.selectedBrand || '',
+        selectedModel: item.selectedModel || '',
+        type: item.type || 'product',
+        collectionName: item.collectionName || '',
+        plateQuantity: item.plateQuantity || 0,
+        platePrice: item.platePrice || 0,
+        // Include all available fields for complete order data
+        image: item.image || '',
+        productOption: item.productOption || 'none',
+        collectionType: item.collectionType || 'none',
+        productRef: item.productRef || item.itemRef || (item.type === 'collection' ? 'Collection' : item.type === 'suggested' ? 'SuggestedProduct' : 'Product'),
+        itemRef: item.productRef || item.itemRef || (item.type === 'collection' ? 'Collection' : item.type === 'suggested' ? 'SuggestedProduct' : 'Product'),
+        collectionId: item.collectionId || (item.type === 'collection' ? item.productId : undefined),
+        isGamingCollection: item.isGamingCollection || false
+      };
+      
+      // Only include customDesign for custom-design items with valid data
+      if (item.type === 'custom-design' && item.customDesign && (item.customDesign.designImageUrl || item.customDesign.originalImageUrl)) {
+        formattedItem.customDesign = item.customDesign;
+      }
+      
+      return formattedItem;
+    });
+
+    // Format address for backend
+    const formattedAddress = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      street: formData.street,
+      city: formData.city,
+      state: formData.state || formData.city,
+      zipcode: formData.postCode || formData.zipcode,
+      country: formData.country,
+      phone: formData.phone
+    };
+
+    // Handle different payment methods
+    switch (method.type) {
+      case 'razorpay':
+        try {
+          setLoading(true);
+          
+          console.log("Initiating Razorpay payment...");
+          
+          // Calculate and verify the total before sending
+          const calculatedSubtotal = formattedItems.reduce((sum, item) => {
+            const itemTotal = item.price * item.quantity;
+            const plateTotal = (item.plateQuantity || 0) * (item.platePrice || 0);
+            console.log(`  ${item.name}: ₹${item.price} × ${item.quantity} = ₹${itemTotal}${plateTotal > 0 ? ` + ₹${plateTotal} plates` : ''}`);
+            return sum + itemTotal + plateTotal;
+          }, 0);
+          
+          const couponsDiscount = (formData.appliedCoupons || []).reduce((sum, c) => sum + (c.discountAmount || 0), 0);
+          const shipping = 5; // Standard shipping
+          const calculatedTotal = calculatedSubtotal - couponsDiscount + shipping;
+          
+          console.log('💰 Payment Amount Verification:');
+          console.log(`  Subtotal (items + plates): ₹${calculatedSubtotal}`);
+          console.log(`  Coupons Discount: -₹${couponsDiscount}`);
+          console.log(`  Shipping: +₹${shipping}`);
+          console.log(`  Calculated Total: ₹${calculatedTotal}`);
+          console.log(`  Frontend Total (prop): ₹${totalAmount}`);
+          console.log(`  Match: ${Math.abs(calculatedTotal - totalAmount) < 0.01 ? '✅' : '❌'}`);
+          
+          // Prepare complete order data to send after successful payment
+          const completeOrderData = {
+            userId: userId || 'guest',
+            items: formattedItems,
+            address: formattedAddress,
+            coupon: formData.appliedCoupons || [],
+            amount: totalAmount // Include the amount for verification
+          };
+          
+          console.log('📦 Complete order data being sent to backend:');
+          console.log('  Items:', formattedItems.map(i => ({
+            name: i.name,
+            type: i.type,
+            price: i.price,
+            quantity: i.quantity,
+            platePrice: i.platePrice,
+            plateQuantity: i.plateQuantity,
+            productOption: i.productOption,
+            collectionType: i.collectionType,
+            hasImage: !!i.image,
+            hasCustomDesign: !!i.customDesign
+          })));
+          console.log('  Applied Coupons:', formData.appliedCoupons);
+          console.log('  Is Guest Checkout:', !userId);
+          
+          // Create Razorpay payment session (NOT the order yet)
+          const razorpayResponse = await fetch(`${BACKEND_URL}/api/orders/razorpay`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: userId || 'guest',
+              items: formattedItems,
+              amount: totalAmount,
+              address: formattedAddress,
+              coupon: formData.appliedCoupons || []
+            })
+          });
+
+          const razorpayResult = await razorpayResponse.json();
+          console.log("Razorpay session result:", razorpayResult);
+          
+          if (razorpayResult.success && razorpayResult.order) {
+            // Initialize Razorpay modal - order will be created after successful payment
+            initRazorpay(razorpayResult.order, completeOrderData);
+          } else {
+            toast.error(razorpayResult.message || 'Failed to initiate payment');
+            setLoading(false);
+          }
+        } catch (error) {
+          console.error('Razorpay error:', error);
+          toast.error('Failed to process payment');
+          setLoading(false);
+        }
+        break;
+
+      case 'cod':
+        try {
+          setLoading(true);
+          
+          const response = await fetch(`${BACKEND_URL}/api/orders/cod`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: userId || 'guest',
+              items: formattedItems,
+              amount: totalAmount,
+              address: formattedAddress,
+              coupon: formData.appliedCoupons || []
+            })
+          });
+
+          const result = await response.json();
+          console.log("COD result:", result);
+          
+          if (result.success) {
+            // Store email in localStorage for guest users to fetch their orders
+            if (formattedAddress && formattedAddress.email) {
+              localStorage.setItem('userEmail', formattedAddress.email);
+            }
+            
+            const storedUser = localStorage.getItem('USER');
+  if (storedUser) {
+    const user = JSON.parse(storedUser);
+    user.isLogedIn = true;
+    localStorage.setItem('USER', JSON.stringify(user));
+  }
+            
+            toast.success('Order placed successfully!', {
+              position: "top-center",
+              autoClose: 3000
+            });
+            onClose();
+            // Clear cart and redirect
+            setTimeout(() => {
+              window.location.href = '/my_orders';
+            }, 1500);
+          } else {
+            toast.error(result.message || 'Failed to place order', {
+              position: "top-center",
+              autoClose: 3000
+            });
+          }
+        } catch (error) {
+          console.error('COD order error:', error);
+          toast.error('Failed to place order. Please try again.', {
+            position: "top-center",
+            autoClose: 3000
+          });
+        } finally {
+          setLoading(false);
+        }
+        break;
+
+      default:
+        toast.error('Invalid payment method');
+        break;
+    }
+
+    // Call parent callback if provided
+    if (onSelectPayment) {
+      onSelectPayment(method);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        onClick={onClose}
+      ></div>
+
+      {/* Modal */}
+      <div className="relative bg-[#131313] rounded-2xl shadow-2xl border border-[#2e2e2e] max-w-md w-full max-h-[90vh] overflow-y-auto animate-slideUp">
+        {/* Header */}
+        <div className="sticky top-0 bg-[#131313] border-b border-[#2e2e2e] px-6 py-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-white">
+              Choose Payment Method
+            </h2>
+            <p className="text-sm text-gray-400 mt-1">
+              Total: ₹{totalAmount.toFixed(2)}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-[#2e2e2e] rounded-lg transition-colors group"
+            aria-label="Close"
+          >
+            <X className="w-6 h-6 text-gray-400 group-hover:text-white" />
+          </button>
+        </div>
+
+        {/* Payment Options */}
+        <div className="p-6 space-y-4">
+          {loading && (
+            <div className="text-center text-lime-400 mb-4">
+              <p>Processing payment...</p>
+            </div>
+          )}
+          {paymentMethods.map((method) => {
+            const Icon = method.icon;
+            return (
+              <button
+                key={method.id}
+                onClick={() => handlePaymentSelect(method)}
+                disabled={loading}
+                className={`w-full group ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <div className="flex items-center gap-4 p-4 bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl hover:border-lime-400/50 hover:bg-[#1f1f1f] transition-all duration-300 active:scale-[0.98]">
+                  {/* Icon */}
+                  <div
+                    className={`p-3 rounded-lg bg-gradient-to-br ${method.color} flex-shrink-0`}
+                  >
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 text-left">
+                    <h3 className="text-lg font-semibold text-white group-hover:text-lime-400 transition-colors">
+                      {method.name}
+                    </h3>
+                    <p className="text-sm text-gray-400 mt-0.5">
+                      {method.description}
+                    </p>
+                  </div>
+
+                  {/* Arrow */}
+                  <div className="text-gray-600 group-hover:text-lime-400 transition-colors">
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-[#2e2e2e] px-6 py-4">
+          <p className="text-xs text-gray-500 text-center">
+            🔒 Your payment information is secure and encrypted
+          </p>
+        </div>
+      </div>
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
+        }
+
+        .animate-slideUp {
+          animation: slideUp 0.3s ease-out;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default PaymentModal;
+
+
