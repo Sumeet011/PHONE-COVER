@@ -4,8 +4,8 @@ import Image from "next/image";
 import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/homecomponents/Footer";
 import { QuantitySelector } from "@/components/ui/quantity-selector";
-import IMG from '../../../public/images/phone.png'
-import CAMERA from '../../../public/images/camera.png'
+import IMG from '../../../public/images/models/image1_boundary.png'
+import CAMERA from '../../../public/images/models/image2_components.png'
 import html2canvas from 'html2canvas';
 import {
   Upload,
@@ -672,20 +672,18 @@ export default function CustomDesignerPage() {
             </div>
 
             {/* Phone Preview Container */}
-            <div className="relative flex items-center justify-center min-h-[600px] overflow-visible">
+            <div className="relative flex items-center justify-center min-h-[600px]  overflow-visible">
               <div
                 id="phone-preview"
-                className="relative w-[320px] h-[650px] rounded-[50px] shadow-2xl"
-                style={{ 
-                  boxShadow: "0 0 60px rgba(0, 0, 0, 0.5)" 
-                }}
+                className="relative w-[290px] h-[620px] rounded-[30px] "
+                
               >
                 {/* Phone Frame Background Image - z-index: 1 */}
                 <img
                   src={IMG.src}
                   alt="Phone Frame"
-                  className="absolute inset-0 w-full h-full object-cover rounded-[50px] pointer-events-none"
-                  style={{ zIndex: 1 }}
+                  className="absolute inset-0 w-full h-full object-cover rounded-[30px] pr-1 pointer-events-none"
+                  style={{zIndex: 1 }}
                 />
 
                 
@@ -693,9 +691,9 @@ export default function CustomDesignerPage() {
                 
 
                 {/* Design Area - User uploaded image - z-index: 10 */}
-                <div
-                  className="absolute inset-0 overflow-hidden cursor-move rounded-[50px]"
-                  style={{ margin: '5px', zIndex: 10 }}
+                <div 
+                  className="absolute inset-0 overflow-hidden cursor-move rounded-[30px] border-5"
+                  style={{  zIndex: 10 }}
                   onMouseDown={handleDragStart}
                 >
                   {uploadedImage ? (
@@ -717,7 +715,7 @@ export default function CustomDesignerPage() {
                 </div>
 
                 {/* Camera Module - Top layer - z-index: 50 */}
-                <div className="absolute top-6 left-6 w-[154px] h-[160px] pointer-events-none rounded-[35px] overflow-hidden  " 
+                <div className="absolute top-6 left-8 w-[140px] h-[160px] pointer-events-none rounded-[35px] overflow-hidden  " 
                      style={{ zIndex: 20 }}>
                   <img
                     src={CAMERA.src}

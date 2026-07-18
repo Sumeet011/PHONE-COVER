@@ -5,7 +5,6 @@ import Navbar from "../../../components/navbar/Navbar";
 import { DropdownButton } from "@/components/ui/dropdown-button-upward";
 import { QuantitySelector } from "@/components/ui/quantity-selector";
 import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import Footer from "@/components/homecomponents/Footer";
 import config from '@/config';
 import localFont from "next/font/local";
@@ -899,15 +898,18 @@ const ProductDetails = () => {
         theme="dark"
       />
 
-      <main className="flex-1">
-      <div className="overflow-hidden max-w-6xl mx-auto mt-25 px-6 py-12">
+      <main className="mx-auto flex-1 w-full">
 
-        <div className="flex flex-col items-center lg:items-start lg:flex-row gap-10">
+
+
+      <div className="overflow-hidden w-full mx-auto mt-25 py-12 pb-0 ">
+
+        <div className="flex flex-col items-center lg:items-start lg:flex-row gap-10 sm:h-[90vh]">
   {/* Image Section with Carousel */}
-  <div className="w-full lg:w-1/2 p-6 rounded-md flex flex-col gap-4">
+  <div className="w-full min-[480px]:w-[80%] sm:max-w-[45%]  sm:min-w-[45%] min-[768px]:min-h-[85vh] sm:max-h-[85vh] p-6 rounded-md flex flex-col gap-4  ">
     {/* Main Image Display */}
     <div 
-      className="relative h-[390px] rounded-xl overflow-hidden group"
+      className="relative  rounded-xl overflow-hidden group  "
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -915,7 +917,7 @@ const ProductDetails = () => {
       <img
         src={productImages[currentImageIndex] || Img.src}
         alt={`${product.name} - Image ${currentImageIndex + 1}`}
-        className="w-full h-full object-contain transition-opacity duration-300"
+        className="w-full h-full object-contain sm:[object-fit:unset] transition-opacity duration-300"
       />
       
       {/* Navigation Arrows (only show if multiple images) */}
@@ -951,28 +953,7 @@ const ProductDetails = () => {
       )}
     </div>
 
-    {/* Thumbnail Navigation (only show if multiple images) */}
-    {productImages.length > 1 && (
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {productImages.map((img, index) => (
-          <button
-            key={index}
-            onClick={() => handleThumbnailClick(index)}
-            className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
-              currentImageIndex === index
-                ? 'border-lime-400 scale-105'
-                : 'border-gray-600 hover:border-gray-400'
-            }`}
-          >
-            <img
-              src={img}
-              alt={`Thumbnail ${index + 1}`}
-              className="w-full h-full object-cover"
-            />
-          </button>
-        ))}
-      </div>
-    )}
+    
   </div>
 
 
@@ -1064,6 +1045,32 @@ const ProductDetails = () => {
                   </div>
                 )}
               </div>
+
+              
+
+{productImages.length > 1 && (
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {productImages.map((img, index) => (
+          <button
+            key={index}
+            onClick={() => handleThumbnailClick(index)}
+            className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+              currentImageIndex === index
+                ? 'border-lime-400 scale-105'
+                : 'border-gray-600 hover:border-gray-400'
+            }`}
+          >
+            <img
+              src={img}
+              alt={`Thumbnail ${index + 1}`}
+              className="w-full h-full object-cover"
+            />
+          </button>
+        ))}
+      </div>
+    )}
+
+
 
               {/* Buttons */}
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
@@ -1170,8 +1177,8 @@ const ProductDetails = () => {
         </div>
       </div>
 
-      <div className="overflow-hidden flex justify-center max-w-full xl:ml-40 mx-auto px-6 mb-0">
-        <div className="mt-16 mb-0">
+      <div className="overflow-hidden flex justify-start max-w-full mx-auto px-6 mb-0">
+        <div className="mt-16 mb-10 ">
           <h2 className="text-2xl font-bold mb-6 text-white">
             Related Products
           </h2>
