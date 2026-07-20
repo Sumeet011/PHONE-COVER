@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo ,useRef} from "react";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "../../../components/navbar/Navbar";
 import { DropdownButton } from "@/components/ui/dropdown-button-upward";
@@ -8,7 +8,6 @@ import { ToastContainer, toast } from 'react-toastify';
 import Footer from "@/components/homecomponents/Footer";
 import config from '@/config';
 import localFont from "next/font/local";
-
 // Default placeholder image
 const Img = { src: '/images/card1.webp' };
 const BACKEND_URL=config.API_BASE_URL;
@@ -31,6 +30,17 @@ type Drink = Product & {
   coverprice?: number;
   plateprice?: number;
   collections?: any[];
+};
+
+type AddOnProduct = {
+  id: string;
+  name: string;
+  subtitle: string;
+  details: string[];
+  colors: string[];
+  price: number;
+  oldPrice: number;
+  image: string;
 };
 
 type ModelOption = {
@@ -105,10 +115,46 @@ const ProductCard: React.FC<{ product: Product; href: string }> = ({ product, hr
   );
 };
 
+const addOnProducts: AddOnProduct[] = [
+  {
+    id: "addon-red-crossbody-lanyard-cord",
+    name: "Red Crossbody Phone Lanyard - Cord",
+    subtitle: "Soft cord finish with polished metal hooks for daily carry.",
+    details: ["Adjustable crossbody fit", "Quick-release clip", "Matte hardware"],
+    colors: ["#b80f22", "#243548", "#8f7751", "#69885d", "#dd8a3e"],
+    price: 1199,
+    oldPrice: 1699,
+    image: "/images/mobile.webp",
+  },
+  {
+    id: "addon-beige-green-crossbody-lanyard-cord",
+    name: "Beige-Green Crossbody Phone Lanyard - Cord",
+    subtitle: "Neutral woven cord with warm accents and low-profile clips.",
+    details: ["Lightweight build", "Comfort weave", "Everyday styling"],
+    colors: ["#b6aa8a", "#234f39", "#8a4d27", "#f0b35d"],
+    price: 1199,
+    oldPrice: 1699,
+    image: "/images/card2.webp",
+  },
+  {
+    id: "addon-grey-utility-crossbody-strap",
+    name: "Grey Crossbody Utility Phone Lanyard - Strap",
+    subtitle: "Utility strap with subtle contrast hardware and durable webbing.",
+    details: ["Utility-grade strap", "Fast clip-on system", "Reinforced edge finish"],
+    colors: ["#b9b9b9", "#5e754e", "#d18b1b", "#2d93c4", "#a71c31", "#161616"],
+    price: 999,
+    oldPrice: 1499,
+    image: "/images/card3.webp",
+  },
+];
+
 const ProductDetails = () => {
   const router = useRouter();
   const params = useParams();
   const productId = params?.id;
+
+  const rightSectionRef = useRef<HTMLDivElement>(null);
+  const productSectionRef = useRef<HTMLDivElement>(null);
 
   // State for product data
   const [product, setProduct] = useState<Drink | null>(null);
@@ -132,6 +178,7 @@ const ProductDetails = () => {
   const [suggestedProducts, setSuggestedProducts] = useState<any[]>([]);
   const [selectedSuggested, setSelectedSuggested] = useState<Set<string>>(new Set());
   const [addingToCart, setAddingToCart] = useState(false);
+  const [addingAddOnId, setAddingAddOnId] = useState<string | null>(null);
 
   // Phone brands state
   const [phonebrand, setPhonebrand] = useState<BrandOption[]>([]);
@@ -229,6 +276,43 @@ const ProductDetails = () => {
 
     fetchPhoneBrands();
   }, []);
+
+  //Page Right scroll 
+  useEffect(() => {
+  const section = productSectionRef.current;
+  const right = rightSectionRef.current;
+
+  if (!section || !right) return;
+
+  const handleWheel = (e: WheelEvent) => {
+    if (window.innerWidth < 1024) return;
+
+    const rect = section.getBoundingClientRect();
+
+    // Section is currently occupying the top of the viewport
+    const inView = rect.top <= 0 && rect.bottom > 0;
+    if (!inView) return; // let the page scroll normally
+
+    const atTop = right.scrollTop <= 0;
+    const atBottom =
+      right.scrollTop + right.clientHeight >= right.scrollHeight - 1;
+
+    const scrollingDown = e.deltaY > 0;
+    const scrollingUp = e.deltaY < 0;
+
+    if ((scrollingDown && !atBottom) || (scrollingUp && !atTop)) {
+      // Right panel still has room to scroll in this direction — lock the page
+      e.preventDefault();
+      right.scrollTop += e.deltaY;
+    }
+    // else: right panel is exhausted in this direction, do nothing —
+    // the browser's default scroll will move the page naturally
+  };
+
+  section.addEventListener("wheel", handleWheel, { passive: false });
+
+  return () => section.removeEventListener("wheel", handleWheel);
+}, [loading,product]);
 
   // Fetch product data
   useEffect(() => {
@@ -647,6 +731,71 @@ const ProductDetails = () => {
     });
   };
 
+  const handleAddOnAddToCart = async (addOnProduct: AddOnProduct) => {
+    const userData = localStorage.getItem('USER');
+    const userId = userData ? JSON.parse(userData).id : localStorage.getItem('userId');
+
+    if (!userId) {
+      toast.error("Please log in to add accessories", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    const loadingToast = toast.loading(`Adding ${addOnProduct.name}...`, {
+      position: "top-right",
+    });
+
+    setAddingAddOnId(addOnProduct.id);
+
+    try {
+      const response = await fetch(`${BASE_URL}/cart/add`, {
+        method: 'POST',
+        headers: {
+          "Content-Type": "application/json",
+          "User-Id": userId,
+        },
+        body: JSON.stringify({
+          userId,
+          type: 'product',
+          productId: addOnProduct.id,
+          productRef: 'Product',
+          productName: addOnProduct.name,
+          collectionName: addOnProduct.name,
+          collectionType: 'accessory',
+          productOption: 'accessory',
+          price: addOnProduct.price,
+          quantity: 1,
+          selectedBrand: 'Accessory',
+          selectedModel: addOnProduct.name,
+          productImage: addOnProduct.image,
+          image: addOnProduct.image,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to add accessory to cart');
+      }
+
+      toast.success(`✅ ${addOnProduct.name} added to cart`, {
+        position: "top-right",
+        autoClose: 2500,
+      });
+    } catch (error: any) {
+      console.error('Error adding accessory to cart:', error);
+      toast.error(`❌ ${error?.message || 'Unable to add accessory'}`, {
+        position: "top-right",
+        autoClose: 3500,
+      });
+    } finally {
+      toast.dismiss(loadingToast);
+      setAddingAddOnId(null);
+    }
+  };
+
   const handleAddToCart = async (product: Drink) => {
     // Validate selections
     if (!selectedBrand || !selectedModel) {
@@ -904,12 +1053,13 @@ const ProductDetails = () => {
 
       <div className="overflow-hidden w-full mx-auto mt-25 py-12 pb-0 ">
 
-        <div className="flex flex-col items-center lg:items-start lg:flex-row gap-10 sm:h-[90vh]">
+        <div  ref={productSectionRef} className="flex flex-col items-center lg:items-start lg:flex-row gap-10 lg:h-screen lg:overflow-hidden">
   {/* Image Section with Carousel */}
-  <div className="w-full min-[480px]:w-[80%] sm:max-w-[45%]  sm:min-w-[45%] min-[768px]:min-h-[85vh] sm:max-h-[85vh] p-6 rounded-md flex flex-col gap-4  ">
+  <div className="w-full min-[480px]:w-[80%] sm:max-w-[45%]  sm:min-w-[45%] min-[768px]:min-h-[85vh] sm:max-h-[85vh] p-6 rounded-md flex flex-col gap-4 
+    lg:h-screen ">
     {/* Main Image Display */}
     <div 
-      className="relative  rounded-xl overflow-hidden group  "
+      className="relative  rounded-xl min-h-full overflow-hidden group"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -917,7 +1067,7 @@ const ProductDetails = () => {
       <img
         src={productImages[currentImageIndex] || Img.src}
         alt={`${product.name} - Image ${currentImageIndex + 1}`}
-        className="w-full h-full object-contain sm:[object-fit:unset] transition-opacity duration-300"
+        className="w-full h-full object-contain sm:[object-fit:unset]  transition-opacity duration-300"
       />
       
       {/* Navigation Arrows (only show if multiple images) */}
@@ -958,7 +1108,11 @@ const ProductDetails = () => {
 
 
           {/* Info Section */}
-          <div className="lg:w-1/2 space-y-10 text-base leading-relaxed text-white">
+          <div  ref={rightSectionRef} className="w-full lg:w-1/2 space-y-10 text-base p-5 leading-relaxed text-white lg:pt-10 h-full
+    lg:h-screen
+    overflow-y-auto
+    lg:pr-6
+    ">
             {/* Title & Price */}
             <div className="flex justify-between items-start gap-4">
               <h1 className={`${JersyFont.className} text-3xl sm:text-4xl md:text-5xl lg:text-6xl flex-1`}>{product.name}</h1>
@@ -1090,6 +1244,90 @@ const ProductDetails = () => {
                 </button>
               </div>
             </div>
+
+            {/* Add On Accessories */}
+            <section className="mt-6 rounded-3xl border border-white/10 bg-[#11110f] p-4 sm:p-5 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+              <div className="flex items-end justify-between gap-4 mb-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-lime-400/90">Add on accessories</p>
+                  <h2 className="mt-1 text-xl sm:text-2xl font-semibold text-white">Bundle it with a matching strap</h2>
+                </div>
+                <p className="hidden sm:block text-sm text-gray-400 max-w-xs text-right">
+                  Tap add on any accessory below and it will go straight into your cart.
+                </p>
+              </div>
+
+              <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
+                {addOnProducts.map((addOn) => (
+                  <article
+                    key={addOn.id}
+                    className="min-w-[320px] sm:min-w-[360px] snap-start rounded-3xl border border-white/10 bg-[#161412] p-4 transition-transform duration-300 hover:-translate-y-1 hover:border-lime-400/40"
+                  >
+                    <div className="flex gap-4 items-start">
+                      <div className="w-20 h-20 shrink-0 rounded-2xl bg-gradient-to-br from-white/95 to-white/70 p-2 shadow-inner">
+                        <img
+                          src={addOn.image}
+                          alt={addOn.name}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-base font-semibold text-white leading-tight">
+                          {addOn.name}
+                        </h3>
+                        <p className="mt-1 text-sm text-gray-400 leading-relaxed">
+                          {addOn.subtitle}
+                        </p>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {addOn.details.map((detail) => (
+                            <span
+                              key={detail}
+                              className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] uppercase tracking-wide text-gray-300"
+                            >
+                              {detail}
+                            </span>
+                          ))}
+                        </div>
+
+                        <div className="mt-3 flex items-center gap-2">
+                          {addOn.colors.map((color) => (
+                            <span
+                              key={color}
+                              className="h-4 w-4 rounded-full border border-white/20 shadow-sm"
+                              style={{ backgroundColor: color }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleAddOnAddToCart(addOn)}
+                        disabled={addingAddOnId === addOn.id}
+                        className="shrink-0 rounded-full border border-lime-400/80 px-4 py-2 text-sm font-semibold text-lime-300 transition-colors hover:bg-lime-400 hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {addingAddOnId === addOn.id ? "Adding..." : "+ Add"}
+                      </button>
+                    </div>
+
+                    <div className="mt-4 flex items-end justify-between gap-3 border-t border-white/10 pt-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-bold text-white">₹{addOn.price}</span>
+                          <span className="text-sm text-gray-500 line-through">₹{addOn.oldPrice}</span>
+                        </div>
+                        <p className="text-xs text-lime-400/80">Ready to bundle with the product above</p>
+                      </div>
+
+                      <div className="rounded-full border border-lime-400/30 bg-lime-400/10 px-3 py-1 text-[11px] uppercase tracking-[0.25em] text-lime-300">
+                        Quick add
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
 
             {/* Suggested Products Section */}
             {suggestedProducts.length > 0 && (

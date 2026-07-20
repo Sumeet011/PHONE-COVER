@@ -4,8 +4,8 @@ import Image from "next/image";
 import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/homecomponents/Footer";
 import { QuantitySelector } from "@/components/ui/quantity-selector";
-import IMG from '../../../public/images/models/image1_boundary.png'
-import CAMERA from '../../../public/images/models/image2_components.png'
+import IMG from '../../../public/images/models/1/image1_boundary.png'
+import CAMERA from '../../../public/images/models/1/image2_components.png'
 import html2canvas from 'html2canvas';
 import {
   Upload,
@@ -21,7 +21,11 @@ import {
 } from "lucide-react";
 import config from "@/config";
 import localFont from "next/font/local";
+import { PHONE_PREVIEW_CONFIG } from "../../lib/phonepreviewconfig";
+
+
 const BACKEND_URL = config.API_BASE_URL;
+
 
 const JersyFont = localFont({
   src: "../../../public/fonts/jersey-10-latin-400-normal.woff2",
@@ -134,7 +138,12 @@ export default function CustomDesignerPage() {
     fetchPhoneBrands();
   }, []);
 
+  
+
   const availableModels = selectedBrand ? modelsByBrand[selectedBrand] || [] : [];
+  const phoneConfig =
+  PHONE_PREVIEW_CONFIG[selectedModel] ??
+  PHONE_PREVIEW_CONFIG["iPhone 16 Pro"];
 
   // Check if there are any out-of-stock models
   const hasOutOfStockModels = useMemo(() => {
@@ -166,6 +175,10 @@ export default function CustomDesignerPage() {
     setSelectedModel("");
   }, [selectedBrand]);
 
+  useEffect(() => {
+  console.log("selectedModel =", selectedModel);
+  console.log("phoneConfig =", PHONE_PREVIEW_CONFIG[selectedModel]);
+}, [selectedModel]);
   // Reset quantities when model changes or stock updates
   useEffect(() => {
     if (selectedBrand && selectedModel && stockInfo[selectedBrand]?.[selectedModel]) {
@@ -530,6 +543,7 @@ export default function CustomDesignerPage() {
     }
   };
 
+
   useEffect(() => {
     if (isDragging) {
       window.addEventListener("mousemove", handleDragMove);
@@ -564,7 +578,7 @@ export default function CustomDesignerPage() {
               <h2 className="text-2xl font-bold mb-4">Preview</h2>
               
               {/* Brand and Model Selection */}
-              <div className="space-y-4">
+              <div className="space-y-4 pb-10">
                 {/* Select Brand */}
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">
@@ -672,18 +686,18 @@ export default function CustomDesignerPage() {
             </div>
 
             {/* Phone Preview Container */}
-            <div className="relative flex items-center justify-center min-h-[600px]  overflow-visible">
+            <div className="relative flex items-center justify-center min-h-[600px] bg-white p-15 rounded-2xl overflow-visible">
               <div
                 id="phone-preview"
-                className="relative w-[290px] h-[620px] rounded-[30px] "
+                className="relative w-[300px] h-[640px] rounded-[25px] "
                 
               >
                 {/* Phone Frame Background Image - z-index: 1 */}
                 <img
-                  src={IMG.src}
+                  src={phoneConfig.frame.src}
                   alt="Phone Frame"
-                  className="absolute inset-0 w-full h-full object-cover rounded-[30px] pr-1 pointer-events-none"
-                  style={{zIndex: 1 }}
+                  className="absolute inset-0 w-full h-full object-cover rounded-[25px] pointer-events-none z-1"
+                  style={{zIndex: 20 }}
                 />
 
                 
@@ -692,7 +706,7 @@ export default function CustomDesignerPage() {
 
                 {/* Design Area - User uploaded image - z-index: 10 */}
                 <div 
-                  className="absolute inset-0 overflow-hidden cursor-move rounded-[30px] border-5"
+                  className="absolute inset-0 overflow-hidden cursor-move rounded-[40px] border-5"
                   style={{  zIndex: 10 }}
                   onMouseDown={handleDragStart}
                 >
@@ -715,10 +729,11 @@ export default function CustomDesignerPage() {
                 </div>
 
                 {/* Camera Module - Top layer - z-index: 50 */}
-                <div className="absolute top-6 left-8 w-[140px] h-[160px] pointer-events-none rounded-[35px] overflow-hidden  " 
+                <div className={phoneConfig.cameraClass}
                      style={{ zIndex: 20 }}>
                   <img
-                    src={CAMERA.src}
+                  
+    src={phoneConfig.camera.src}
                     alt="iPhone Camera Module"
                     className="w-full h-full object-cover "
                   />
