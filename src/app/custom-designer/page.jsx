@@ -108,6 +108,7 @@ export default function CustomDesignerPage() {
           setPhoneBrands(brands);
           setModelsByBrand(models);
           setStockInfo(stock);
+          console.log(stock);
         }
       } catch (error) {
         // Fallback to hardcoded brands if API fails
@@ -143,7 +144,7 @@ export default function CustomDesignerPage() {
   const availableModels = selectedBrand ? modelsByBrand[selectedBrand] || [] : [];
   const phoneConfig =
   PHONE_PREVIEW_CONFIG[selectedModel] ??
-  PHONE_PREVIEW_CONFIG["iPhone 16 Pro"];
+  PHONE_PREVIEW_CONFIG["iphone-16-pro"];
 
   // Check if there are any out-of-stock models
   const hasOutOfStockModels = useMemo(() => {
@@ -159,10 +160,16 @@ export default function CustomDesignerPage() {
     const stock = stockInfo[selectedBrand][selectedModel];
     
     // Cover+Plates limited by back covers (each needs 1 cover + 2 plates)
-    const maxCoverPlates = Math.min(stock.backCovers, Math.floor(stock.aluminumSheets / 2), 10);
-    
-    // Plates-only limited by aluminum sheets (each needs 2 plates)
-    const maxPlatesOnly = Math.min(Math.floor(stock.aluminumSheets / 2), 20);
+    const maxCoverPlates = Math.min(
+    stock.backCovers,
+    stock.aluminumSheets,
+    10
+);
+
+const maxPlatesOnly = Math.min(
+    stock.aluminumSheets,
+    20
+);
 
     return {
       coverPlates: Math.max(0, maxCoverPlates),
@@ -404,7 +411,7 @@ export default function CustomDesignerPage() {
       }
       
       // Check if adding plates (requires aluminum sheets)
-      const totalPlatesNeeded = (coverPlatesQuantity * 2) + (platesOnlyQuantity * 2); // Each item needs 2 plates
+      const totalPlatesNeeded =coverPlatesQuantity + platesOnlyQuantity;
       if (totalPlatesNeeded > 0 && modelStock.aluminumSheets < totalPlatesNeeded) {
         //alert(`Insufficient aluminum sheet stock. Only ${modelStock.aluminumSheets} available.`);
         setUploadStatus(`❌ Only ${modelStock.aluminumSheets} aluminum sheets available`);
@@ -437,8 +444,11 @@ export default function CustomDesignerPage() {
 
     try {
       // 1. Capture design screenshot immediately
+
+      const originalImageUrl = await uploadImageToBackend(uploadedImage);
       setUploadStatus("Capturing design...");
       const designImageData = await captureDesignImage();
+
 
       // 2. Upload design to Cloudinary
       setUploadStatus("Uploading...");
@@ -463,7 +473,7 @@ export default function CustomDesignerPage() {
           productOption: 'cover+plates',
           customDesign: {
             designImageUrl,
-            originalImageUrl: uploadedImage,
+            originalImageUrl,
             phoneModel: `${selectedBrand}-${selectedModel}`,
             transform: imageTransform,
           }
@@ -670,7 +680,7 @@ export default function CustomDesignerPage() {
                         )}
                         {stockInfo[selectedBrand][selectedModel].backCovers > 0 && 
                          stockInfo[selectedBrand][selectedModel].aluminumSheets > 0 &&
-                         (maxQuantities.coverPlates < 5 || maxQuantities.platesOnly < 10) && (
+                         (maxQuantities.coverPlates <1 || maxQuantities.platesOnly <1) && (
                           <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-2">
                             <span className="text-amber-400 text-sm mt-0.5">⚠️</span>
                             <p className="text-xs text-amber-300">

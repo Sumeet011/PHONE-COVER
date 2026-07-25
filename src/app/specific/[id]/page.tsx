@@ -64,6 +64,74 @@ const JersyFont = localFont({
   variable: "--font-jersey",
 });
 
+const banners = [
+  {
+    type: "text",
+    title: "STRIDE CASES",
+    description: "Dependable Protection, Uncompromised Style."
+  },
+  {
+    type: "image",
+    image:
+      "https://images.dailyobjects.com/marche/feature-banner/re-x-do-feature-image-iphone-17-series.jpg?tr=cm-pad_crop,v-3,w-1054,h-843,dpr-1"
+  },
+  {
+    type: "image",
+    image:
+      "https://images.dailyobjects.com/marche/feature-banner/re-x-do-feature-image-iphone-17-series-1.jpg?tr=cm-pad_crop,v-3,w-1054,h-843,dpr-1"
+  },
+  {
+    type: "text",
+    title: "360-DEGREE PROTECTION",
+    description:
+      "Stride’s shock-absorption bumpers are equipped with Air Cushion Technology to give your phone 360-degree drop protection from up to 6.6 ft."
+  },
+  {
+    type: "text",
+    title: "DESIGNED TO PROTECT",
+    description:
+      "From raised bezel for camera protection to elevated edges, Stride is engineered to become your phone’s ultimate protection gear."
+  },
+  {
+    type: "image",
+    image:
+      "https://images.dailyobjects.com/marche/feature-banner/re-x-do-feature-image-iphone-17-series-2.jpg?tr=cm-pad_crop,v-3,w-1054,h-843,dpr-1"
+  },
+  {
+    type: "image",
+    image:
+      "https://images.dailyobjects.com/marche/feature-banner/re-x-do-feature-image-iphone-17-series-3.jpg?tr=cm-pad_crop,v-3,w-1054,h-843,dpr-1"
+  },
+  {
+    type: "text",
+    title: "CHARGE WITHOUT BOUNDS",
+    description:
+      "Enjoy effortless magnetic charging with precise MagSafe compatibility, keeping you powered up in style."
+  },
+  {
+    type: "text",
+    title: "DOUBLE THE DEFENCE",
+    description:
+      "Two powerful layers combine for ultimate durability and style. The hard PC protects your phone from high-impact drops while the soft TPU edges absorbs the shock."
+  },
+  {
+    type: "image",
+    image:
+      "https://images.dailyobjects.com/marche/feature-banner/re-x-do-feature-image-iphone-17-series-4.jpg?tr=cm-pad_crop,v-3,w-1054,h-843,dpr-1"
+  },
+  {
+    type: "image",
+    image:
+      "https://images.dailyobjects.com/marche/feature-banner/re-x-do-feature-image-iphone-17-series-5.jpg?tr=cm-pad_crop,v-3,w-1054,h-843,dpr-1"
+  },
+  {
+    type: "text",
+    title: "PICK YOUR VIBE",
+    description:
+      "Designed to protect and mirror your style, Stride ensures you get the best of both worlds."
+  }
+];
+
 
 const ProductCard: React.FC<{ product: Product; href: string }> = ({ product, href }) => {
   return (
@@ -114,6 +182,36 @@ const ProductCard: React.FC<{ product: Product; href: string }> = ({ product, hr
     </a>
   );
 };
+
+function Banners(){
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2">
+  {banners.map((item, index) => (
+    <div key={index} className="h-full">
+      {item.type === "text" ? (
+        <div className="flex h-full items-center justify-center p-16">
+          <div className="max-w-md">
+            <h2 className="text-5xl font-bold uppercase">
+              {item.title}
+            </h2>
+
+            <p className="mt-6 text-lg leading-8">
+              {item.description}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <img
+          src={item.image}
+          alt=""
+          className="w-full h-full object-cover"
+        />
+      )}
+    </div>
+  ))}
+</div>
+  );
+}
 
 const addOnProducts: AddOnProduct[] = [
   {
@@ -397,7 +495,6 @@ const ProductDetails = () => {
         // Attach collections to product data with pricing info
         if (productCollections.length > 0) {
           productData.collections = productCollections;
-          console.log('Found collections for product:', productCollections);
           
           // Find two-option collection (gaming/swap-wrap/normal-swap)
           const twoOptionCollection = productCollections.find((col: any) => 
@@ -412,10 +509,7 @@ const ProductDetails = () => {
             if (!productData.plateprice && twoOptionCollection.plateprice) {
               productData.plateprice = twoOptionCollection.plateprice;
             }
-            console.log('Applied collection pricing:', {
-              coverprice: productData.coverprice,
-              plateprice: productData.plateprice
-            });
+           
           }
         }
         
@@ -524,6 +618,8 @@ const ProductDetails = () => {
         }));
         localStorage.setItem(cacheTimeKey, Date.now().toString());
         
+        
+
         setProduct(productData);
         setRelatedProducts(relatedProductsList);
         setSuggestedProducts(suggestedProductsList);
@@ -849,13 +945,7 @@ const ProductDetails = () => {
         productOption = 'cover-only';
       }
 
-      console.log('Product option details:', {
-        quantity,
-        extraPlates, 
-        extraPlateQuantity,
-        productOption,
-        isTwoOptionProduct
-      });
+      
 
       // Get the product image to send with cart item
       const productImage = Array.isArray(product.images) && product.images.length > 0 
@@ -885,7 +975,6 @@ const ProductDetails = () => {
         image: productImage
       };
 
-      console.log("Adding to cart:", cartItem);
 
 
       // Add main product
@@ -898,7 +987,6 @@ const ProductDetails = () => {
         body: JSON.stringify(cartItem)
       });
       const result = await response.json();
-      console.log("Add to cart result:", result);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -1362,14 +1450,6 @@ const ProductDetails = () => {
                   <span className="font-medium text-white">Type:</span>{" "}
                   {product.type || "N/A"}
                 </li>
-                <li>
-                  <span className="font-medium text-white">Flavor:</span>{" "}
-                  {product.flavor || "N/A"}
-                </li>
-                <li>
-                  <span className="font-medium text-white">Pack Size:</span>{" "}
-                  {product.packSize || "N/A"}
-                </li>
               </ul>
             </div>
 
@@ -1414,6 +1494,8 @@ const ProductDetails = () => {
           </div>
         </div>
       </div>
+
+      <Banners/>
 
       <div className="overflow-hidden flex justify-start max-w-full mx-auto px-6 mb-0">
         <div className="mt-16 mb-10 ">

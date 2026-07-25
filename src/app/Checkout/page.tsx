@@ -24,6 +24,7 @@ interface CartItem {
   plateQuantity?: number;
   platePrice?: number;
   plateTotalPrice?: number;
+  lineTotalPrice?: number;
   customDesign?: any;
 }
 
@@ -256,7 +257,10 @@ const CheckoutPage = () => {
 
   // Calculate totals
   const subtotal = cartItems.reduce((sum: number, item) => {
-    return sum + (item.lineTotalPrice || ((item.price * item.quantity) + (item.plateTotalPrice || 0)));
+    const baseAmount = (item.price || 0) * (item.quantity || 1);
+    const plateAmount = item.plateTotalPrice ?? ((item.plateQuantity || 0) * (item.platePrice || 0));
+    const lineTotal = item.lineTotalPrice ?? (baseAmount + plateAmount);
+    return sum + lineTotal;
   }, 0);
   const shipping = subtotal > 0 ? 5 : 0;
   const totalDiscountAmount = appliedCoupons.reduce((sum, coupon) => sum + coupon.discountAmount, 0);

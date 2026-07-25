@@ -14,14 +14,18 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 // Define the order type based on backend schema
 type OrderItem = {
   productId: string;
-  productName: string;
-  phoneModel: string;
-  quantity: number;
-  price: number;
+  productName?: string;
+  phoneModel?: string;
+  quantity?: number;
+  price?: number;
   itemType?: string;
   collectionId?: string;
   collectionName?: string;
   level?: number;
+  hasPlate?: boolean;
+  plateQuantity?: number;
+  platePrice?: number;
+  collectionType?: string;
 };
 
 type ShippingAddress = {
@@ -34,6 +38,18 @@ type ShippingAddress = {
   state: string;
   zipCode: string;
   country: string;
+};
+
+type Plate = {
+  collectionId?: any;
+  collectionName?: string;
+  collectionImage?: string;
+  phoneModel?: string;
+  phoneBrand?: string;
+  quantity?: number;
+  pricePerPlate?: number;
+  totalPrice?: number;
+  _id?: string;
 };
 
 type Order = {
@@ -68,6 +84,7 @@ type Order = {
     }>;
     status: string;
   };
+  plates?: Plate[];
 };
 
 const MyOrders = () => {
@@ -105,6 +122,7 @@ const MyOrders = () => {
         });
 
         const data = await response.json();
+        console.log(data.orders);
         if (data.success) {
           setOrders(data.orders || []);
           if (data.orders && data.orders.length === 0 && data.message) {
@@ -122,6 +140,9 @@ const MyOrders = () => {
         setLoading(false);
       }
     };
+
+    
+    
 
     fetchOrders();
   }, []);
@@ -170,7 +191,8 @@ const MyOrders = () => {
   };
 
   const handleToggleReturnPlate = (order: Order, plateIndex: number) => {
-    const plate = order.plates[plateIndex];
+    const plate = order.plates?.[plateIndex];
+    if (!plate) return;
     const plateKey = `plate_${plateIndex}_${plate.collectionName}`;
     setSelectedReturnItems(prev => ({
       ...prev,
@@ -205,19 +227,21 @@ const MyOrders = () => {
         };
       });
     const selectedPlates = Object.entries(selectedReturnItems)
-      .filter(([_, data]) => data.selected && data.type === 'plate')
-      .map(([key, data]) => {
-        const index = data.index;
-        const plate = order.plates[index];
-        return {
-          type: 'plate',
-          plateIndex: index,
-          collectionId: plate.collectionId,
-          collectionName: plate.collectionName,
-          quantity: plate.quantity,
-          reason: returnReason || data.reason || "No reason provided"
-        };
-      });
+        .filter(([_, data]) => data.selected && data.type === 'plate')
+        .map(([key, data]) => {
+          const index = data.index;
+          const plate = order.plates?.[index];
+          if (!plate) return null;
+          return {
+            type: 'plate',
+            plateIndex: index,
+            collectionId: plate.collectionId,
+            collectionName: plate.collectionName,
+            quantity: plate.quantity,
+            reason: returnReason || data.reason || "No reason provided"
+          };
+        })
+        .filter(Boolean);
 
     if (selectedItems.length === 0 && selectedPlates.length === 0) {
       toast.error("Please select at least one item or plate to return");
@@ -343,6 +367,111 @@ const MyOrders = () => {
     }
   };
 
+  const getItemQuantitySummary = (item: OrderItem) => {
+    const comboCount = Number(item.quantity || 0);
+    const extraPlateCount = Number(item.plateQuantity || 0);
+    const collectionType = (item.collectionType || 'other').toLowerCase();
+    const isGamingCollection = collectionType === 'gaming';
+    const isSwapWrap = collectionType === 'swap-wrap';
+
+    const covers = comboCount;
+    const combos = comboCount;
+    const extraPlates = extraPlateCount;
+
+    // Plates counted for collection summary: combo provides 1 plate per combo + any extra plates
+    const platesForCollection = (isGamingCollection || isSwapWrap) ? (comboCount + extraPlateCount) : 0;
+
+    let displayLabel = `${covers} cover${covers === 1 ? '' : 's'}`;
+    if (isGamingCollection || isSwapWrap) {
+      displayLabel = `${combos} combo${combos === 1 ? '' : 's'}`;
+      if (extraPlates > 0) displayLabel += ` + ${extraPlates} plate${extraPlates === 1 ? '' : 's'}`;
+    }
+
+    return {
+      covers,
+      combos,
+      plates: platesForCollection,
+      extraPlates,
+      isGamingCollection,
+      isSwapWrap,
+      displayLabel,
+    };
+  };
+
+  const getGroupedOrderItems = (order: Order) => {
+    const grouped: Record<string, { collectionName: string; items: OrderItem[]; totalCovers: number; totalPlates: number }> = {};
+    const ungrouped: OrderItem[] = [];
+
+    // normalize keys coming from various shapes: string ids, ObjectId-like objects, or full objects
+    const normalizeCollectionKey = (val: any) => {
+      if (!val) return '';
+      if (typeof val === 'string') return val;
+      if (typeof val === 'object') {
+        if (val._id) return String(val._id);
+        if (val.id) return String(val.id);
+        // fallback to toString when it provides something meaningful
+        if (val.toString && val.toString() !== '[object Object]') return val.toString();
+        return '';
+      }
+      return String(val);
+    };
+
+    order.items.forEach((item) => {
+      const rawKey = item.collectionId || item.collectionName || '';
+      const collectionKey = normalizeCollectionKey(rawKey) || '';
+      if (collectionKey) {
+        const collectionName = item.collectionName || 'Collection';
+        if (!grouped[collectionKey]) {
+          grouped[collectionKey] = {
+            collectionName,
+            items: [],
+            totalCovers: 0,
+            totalPlates: 0,
+          };
+        }
+
+        const summary = getItemQuantitySummary(item);
+        grouped[collectionKey].items.push(item);
+        grouped[collectionKey].totalCovers += summary.covers;
+        grouped[collectionKey].totalPlates += summary.plates;
+      } else {
+        ungrouped.push(item);
+      }
+    });
+
+    // Include plates saved in order.plates (separate plate entries)
+    // To avoid double-counting when item.plateQuantity is also present, treat the
+    // plates array as authoritative for extra plates: compute matched plate sums
+    // and then set totalPlates = totalCovers + matchedPlateSum for that collection.
+    if (order.plates && Array.isArray(order.plates)) {
+      const platesByGroupKey: Record<string, number> = {};
+
+      order.plates.forEach((plate: any) => {
+        const plateKeyRaw = plate.collectionId || plate.collectionName || '';
+        const plateKey = normalizeCollectionKey(plateKeyRaw) || '';
+        const plateQty = Number(plate.quantity || 0);
+
+        if (plateKey && grouped[plateKey]) {
+          platesByGroupKey[plateKey] = (platesByGroupKey[plateKey] || 0) + plateQty;
+        } else if (plate.collectionName) {
+          const matchKey = Object.keys(grouped).find(k => grouped[k].collectionName === plate.collectionName);
+          if (matchKey) {
+            platesByGroupKey[matchKey] = (platesByGroupKey[matchKey] || 0) + plateQty;
+          }
+        }
+      });
+
+      // Override group totals using matched plate sums to prevent duplication
+      Object.entries(platesByGroupKey).forEach(([gk, plateSum]) => {
+        if (grouped[gk]) {
+          grouped[gk].totalPlates = grouped[gk].totalCovers + plateSum;
+        }
+      });
+    }
+
+    return { grouped, ungrouped };
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center h-screen bg-[#090701] text-white">
@@ -391,121 +520,99 @@ const MyOrders = () => {
                   </h3>
                   <ul className="space-y-2 text-sm text-gray-300">
                     {(() => {
-                      // If not delivered, group collection items
-                      if (order.status !== 'Delivered') {
-                        const groupedItems: { [key: string]: { items: OrderItem[], totalQty: number, totalPrice: number } } = {};
-                        const regularItems: OrderItem[] = [];
+                      const { grouped, ungrouped } = getGroupedOrderItems(order);
+                      const collectionEntries = Object.entries(grouped);
 
-                        order.items.forEach((item) => {
-                          if (item.collectionId && item.collectionName) {
-                            const key = item.collectionId;
-                            if (!groupedItems[key]) {
-                              groupedItems[key] = {
-                                items: [],
-                                totalQty: 0,
-                                totalPrice: 0
-                              };
+                      return (
+                        <>
+                          {collectionEntries.map(([collectionKey, data]) => {
+                            const showRevealNotice = data.items.some((item) => (item.collectionType || 'other') === 'gaming');
+
+                            return (
+                              <li key={collectionKey} className="rounded-lg border border-gray-700/70 bg-[#1a1a1a] p-3">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="font-semibold text-lime-400">{data.collectionName}</span>
+                                  <span className="text-[11px] text-gray-500">
+                                    Covers: {data.totalCovers}
+                                    {data.items.some(i => ((i.collectionType||'').toLowerCase() === 'gaming' || (i.collectionType||'').toLowerCase() === 'swap-wrap')) && (
+                                      <>
+                                        {' '}
+                                        • Plates: {data.totalPlates}
+                                      </>
+                                    )}
+                                  </span>
+                                </div>
+
+                                {showRevealNotice && (
+                                  <div className="mt-2 rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-300">
+                                    Cards will be revealed on delivery
+                                  </div>
+                                )}
+
+                                <div className="mt-2 space-y-2">
+                                  {(() => {
+                                    // Distribute any extra plates (from order.plates merged into data.totalPlates)
+                                    // across items in this collection for display purposes.
+                                    let platesToDistribute = Math.max(0, data.totalPlates - data.totalCovers);
+
+                                    return data.items.map((item, idx) => {
+                                      const summary = getItemQuantitySummary(item);
+                                      const itemQty = Number(item.quantity || 0) || 1;
+                                      let allocatedExtra = 0;
+
+                                      if ((summary.isGamingCollection || summary.isSwapWrap) && platesToDistribute > 0) {
+                                        allocatedExtra = Math.min(itemQty, platesToDistribute);
+                                        platesToDistribute -= allocatedExtra;
+                                      }
+
+                                      const extraPlatesForDisplay = Number(item.plateQuantity || 0) + allocatedExtra;
+
+                                      let detailText = '';
+                                      if (summary.isGamingCollection || summary.isSwapWrap) {
+                                        const combos = itemQty;
+                                        detailText = `${combos} combo${combos === 1 ? '' : 's'}`;
+                                        if (extraPlatesForDisplay > 0) detailText += ` + ${extraPlatesForDisplay} plate${extraPlatesForDisplay === 1 ? '' : 's'}`;
+                                      } else {
+                                        detailText = summary.covers > 0 ? `Covers: ${summary.covers}` : '';
+                                      }
+
+                                      return (
+                                        <div key={`${collectionKey}-${idx}`} className="border-l border-lime-500/40 pl-2">
+                                          <div className="text-sm text-white">{item.productName}</div>
+                                          {detailText && (
+                                            <div className="text-[11px] text-gray-400 mt-1">{detailText}</div>
+                                          )}
+                                        </div>
+                                      );
+                                    });
+                                  })()}
+                                </div>
+                              </li>
+                            );
+                          })}
+
+                          {ungrouped.map((item, idx) => {
+                            const summary = getItemQuantitySummary(item);
+                            let detailText = '';
+
+                            if (summary.isGamingCollection || summary.isSwapWrap) {
+                              detailText = summary.displayLabel;
+                            } else {
+                              detailText = summary.covers > 0 ? `Covers: ${summary.covers}` : '';
                             }
-                            groupedItems[key].items.push(item);
-                            groupedItems[key].totalQty += item.quantity;
-                            const itemTotal = item.price * item.quantity;
-                            const plateTotal = item.hasPlate && item.platePrice ? item.platePrice : 0;
-                            groupedItems[key].totalPrice += itemTotal + plateTotal;
-                          } else {
-                            regularItems.push(item);
-                          }
-                        });
 
-                        return (
-                          <>
-                            {/* Show grouped collections */}
-                            {Object.entries(groupedItems).map(([collectionId, data]) => (
-                              <li key={collectionId} className="flex justify-between items-start border-l-2 border-lime-400 pl-2">
-                                <div className="flex-1">
-                                  <span className="block font-semibold text-lime-400">
-                                    {data.items[0].collectionName}
-                                  </span>
-                                  <span className="text-xs text-gray-500">Collection ({data.items.length} cards)</span>
-                                  {data.items.filter(i => i.hasPlate).length > 0 && (
-                                    <span className="text-xs text-blue-400 block">
-                                      +{data.items.filter(i => i.hasPlate).length} Plate(s)
-                                    </span>
-                                  )}
-                                  <span className="text-xs text-yellow-400 block mt-1">
-                                    ⏳ Cards will be revealed on delivery
-                                  </span>
-                                </div>
-                                <div className="text-right">
-                                  <span className="block">x{data.totalQty}</span>
-                                  <span className="text-xs text-gray-500">₹{data.totalPrice}</span>
-                                </div>
+                            return (
+                              <li key={`ungrouped-${idx}`} className="rounded-lg border border-gray-700/70 bg-[#1a1a1a] p-3">
+                                <div className="text-sm text-white">{item.productName}</div>
+                                {detailText && (
+                                  <div className="text-[11px] text-gray-400 mt-1">{detailText}</div>
+                                )}
                               </li>
-                            ))}
-                            {/* Show regular items */}
-                            {regularItems.map((item, idx) => (
-                              <li key={`regular-${idx}`} className="flex justify-between items-start">
-                                <div className="flex-1">
-                                  <span className="block">{item.productName}</span>
-                                  <span className="text-xs text-gray-500">{item.phoneModel}</span>
-                                  {item.hasPlate && (
-                                    <span className="text-xs text-blue-400">+Plate (₹{item.platePrice})</span>
-                                  )}
-                                </div>
-                                <div className="text-right">
-                                  <span className="block">x{item.quantity}</span>
-                                  <span className="text-xs text-gray-500">₹{item.price * item.quantity + (item.hasPlate && item.platePrice ? item.platePrice : 0)}</span>
-                                </div>
-                              </li>
-                            ))}
-                          </>
-                        );
-                      }
-
-                      // If delivered, show all individual products
-                      return order.items.map((item, idx) => (
-                        <li key={idx} className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <span className="block">{item.productName}</span>
-                            <span className="text-xs text-gray-500">{item.phoneModel}</span>
-                            {item.collectionName && (
-                              <span className="text-xs text-lime-400 block">
-                                From: {item.collectionName}
-                              </span>
-                            )}
-                            {item.level && (
-                              <span className="text-xs text-purple-400 block font-semibold">
-                                ⭐ Level {item.level}
-                              </span>
-                            )}
-                            {item.hasPlate && (
-                              <span className="text-xs text-blue-400">
-                                +Plate (₹{item.platePrice})
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <span className="block">x{item.quantity}</span>
-                            <span className="text-xs text-gray-500">₹{item.price * item.quantity + (item.hasPlate && item.platePrice ? item.platePrice : 0)}</span>
-                          </div>
-                        </li>
-                      ));
+                            );
+                          })}
+                        </>
+                      );
                     })()}
-                    
-                    {/* Show plates separately */}
-                    {order.plates && order.plates.length > 0 && order.plates.map((plate: any, idx: number) => (
-                      <li key={`plate-${idx}`} className="flex justify-between items-start border-l-2 border-blue-400 pl-2 mt-2">
-                        <div className="flex-1">
-                          <span className="block font-semibold text-blue-400">
-                            🎴 {plate.collectionName} - Plates
-                          </span>
-                          <span className="text-xs text-gray-500">Gaming Collection Plates</span>
-                        </div>
-                        <div className="text-right">
-                          <span className="block">x{plate.quantity}</span>
-                          <span className="text-xs text-gray-500">₹{plate.totalPrice}</span>
-                        </div>
-                      </li>
-                    ))}
                   </ul>
                 </div>
 

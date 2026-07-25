@@ -34,20 +34,17 @@ const ProductCard: React.FC<{ product: Product; href: string }> = ({ product, hr
     <a
       href={href}
       className="group relative rounded-2xl overflow-hidden  shadow-lg hover:shadow-xl transition-transform transform hover:scale-105 duration-300 flex flex-col snap-start
-        // Mobile (default)
-        w-full max-w-[140px] h-[240px]
-        // Small mobile (min-width: 375px)
-        xs:max-w-[160px] xs:h-[220px]
+      h-[220px] w-[190px]
         // Mobile landscape / Small tablets (min-width: 480px)
-        sm:max-w-[180px] sm:h-[250px]
+        sm:w-[180px] sm:h-[250px]
         // Tablets (min-width: 768px)
-        md:max-w-[200px] md:h-[280px]
+        md:w-[200px] md:h-[280px]
         // Large tablets (min-width: 1024px)
-        lg:max-w-[220px] lg:h-[310px]
+        lg:w-[220px] lg:h-[310px]
         // Desktop (min-width: 1280px)
-        xl:max-w-[240px] xl:h-[340px]
+        xl:w-[240px] xl:h-[340px]
         // Large desktop (min-width: 1536px)
-        2xl:max-w-[260px] 2xl:h-[360px]"
+        2xl:w-[260px] 2xl:h-[360px]"
       style={{ background: 'linear-gradient(to top, #1a1816 0%, #1a1816 25%, transparent 65%)' }}
     >
       {/* Image Container */}
@@ -89,6 +86,10 @@ const ProductCard: React.FC<{ product: Product; href: string }> = ({ product, hr
   );
 };
 
+
+
+
+
 export default function HorizontalScrollableCards() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const containerRef1 = useRef<HTMLDivElement | null>(null);
@@ -99,7 +100,6 @@ export default function HorizontalScrollableCards() {
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState({
     productsTitle: "BROWSE ALL PRODUCTS",
-    productsPerRow: 41,
     productsRows: 2
   });
 
@@ -177,14 +177,8 @@ export default function HorizontalScrollableCards() {
         if (data.success && data.data) {
           setSettings({
             productsTitle: data.data.productsTitle || "BROWSE ALL PRODUCTS",
-            productsPerRow: data.data.productsPerRow || 41,
             productsRows: data.data.productsRows || 2
           });
-          /*console.log("Settings updated:", {
-            productsTitle: data.data.productsTitle,
-            productsPerRow: data.data.productsPerRow,
-            productsRows: data.data.productsRows
-          });*/
         }
       } catch (error) {
         //console.error('Error fetching site settings:', error);
@@ -228,7 +222,7 @@ export default function HorizontalScrollableCards() {
   };
 
   // Get products to display based on settings
-  const displayProducts = products.slice(0, settings.productsPerRow);
+  const displayProducts = products;
   
   // Create array of row refs
   const rowRefs = useRef<Array<HTMLDivElement | null>>([]);

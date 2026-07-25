@@ -98,32 +98,29 @@ export default function GameCollections() {
       setLoading(true);
 
       const url = `${BACKEND_URL}/api/groups`;
-      console.log("[gamecollections] BACKEND_URL:", BACKEND_URL);
-      console.log("[gamecollections] Request URL:", url);
+      
 
       const response = await fetch(url);
-      console.log("[gamecollections] Response status:", response.status);
-      console.log("[gamecollections] Response ok:", response.ok);
-      console.log("[gamecollections] Response headers:", Object.fromEntries(response.headers.entries()));
+      
 
       if (!response.ok) {
         const text = await response.text();
-        console.error("[gamecollections] Non-OK response body:", text);
+        
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log("[gamecollections] Response JSON:", data);
+      
 
       if (data.success && data.items) {
-        console.log("[gamecollections] Items count:", data.items.length);
+        
         setGroups(data.items);
       } else {
-        console.warn("[gamecollections] success/items missing:", data);
+        
         setGroups([]);
       }
     } catch (error) {
-      console.error("[gamecollections] Fetch failed:", error);
+      
       setGroups([]);
     } finally {
       setLoading(false);

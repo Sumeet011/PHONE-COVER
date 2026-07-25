@@ -8,7 +8,10 @@ import { useUser } from "@clerk/clerk-react";
 import { useState } from "react";
 import PaymentModal from "./PaymentModal";
 
-const PersonDetails = ({ totalCost, cartItems = [], appliedCoupons = [], totalDiscountAmount = 0 }) => {
+const PersonDetails = (props) => {
+  const { totalCost, cartItems, appliedCoupons, totalDiscountAmount = 0 } = props;
+  const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
+  const safeAppliedCoupons = Array.isArray(appliedCoupons) ? appliedCoupons : [];
   const {
     register,
     handleSubmit,
@@ -25,7 +28,7 @@ const PersonDetails = ({ totalCost, cartItems = [], appliedCoupons = [], totalDi
   // Handler to show payment modal
   const handlePayNowClick = (data) => {
     // Validate cart has items
-    if (!cartItems || cartItems.length === 0) {
+    if (!safeCartItems.length) {
       toast.error("Your cart is empty!");
       return;
     }
@@ -33,7 +36,7 @@ const PersonDetails = ({ totalCost, cartItems = [], appliedCoupons = [], totalDi
     // Add applied coupons to form data
     const formDataWithCoupons = {
       ...data,
-      appliedCoupons: appliedCoupons
+      appliedCoupons: safeAppliedCoupons
     };
 
     // Save form data and show payment modal
@@ -155,7 +158,7 @@ const PersonDetails = ({ totalCost, cartItems = [], appliedCoupons = [], totalDi
           city: data.city,
           country: data.country,
         },
-        products: cartItems.map((item) => ({
+        products: safeCartItems.map((item) => ({
           productId: item._id,
           name: item.name,
           quantity: item.quantity,

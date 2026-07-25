@@ -2,21 +2,23 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 
-const OrderSummary = ({
-  cartItems = [],
-  subtotal,
-  shipping,
-  appliedCoupons = [],
-  totalDiscountAmount = 0,
-  totalCost,
-  couponCode,
-  setCouponCode,
-  handleApplyCoupon,
-  handleRemoveCoupon,
-  showActions = true,
-  showCheckout = true,
-}) => {
- 
+const OrderSummary = (props) => {
+  const {
+    cartItems,
+    subtotal,
+    shipping,
+    appliedCoupons,
+    totalDiscountAmount = 0,
+    totalCost,
+    couponCode,
+    setCouponCode,
+    handleApplyCoupon,
+    handleRemoveCoupon,
+    showActions = true,
+    showCheckout = true,
+  } = props;
+  const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
+  const safeAppliedCoupons = Array.isArray(appliedCoupons) ? appliedCoupons : [];
 
   const router = useRouter();
   const handleCheckout = () => {
@@ -36,9 +38,9 @@ const OrderSummary = ({
       <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
       
       {/* Cart Items Preview */}
-      {cartItems && cartItems.length > 0 && (
+      {safeCartItems.length > 0 && (
         <div className="mb-4 max-h-40 overflow-y-auto border-b border-gray-700 pb-3 space-y-2">
-          {cartItems.map((item, index) => {
+          {safeCartItems.map((item, index) => {
             const itemPrice = item.price * item.quantity;
             const platePrice = item.plateTotalPrice || 0;
             const totalItemPrice = itemPrice + platePrice;
@@ -108,10 +110,10 @@ const OrderSummary = ({
           </div>
           
           {/* Applied Coupons List */}
-          {appliedCoupons && appliedCoupons.length > 0 && (
+          {safeAppliedCoupons.length > 0 && (
             <div className="mt-3 space-y-2">
               <p className="text-sm text-green-400">Applied Coupons:</p>
-              {appliedCoupons.map((coupon, index) => (
+              {safeAppliedCoupons.map((coupon, index) => (
                 <div key={index} className="flex items-center justify-between bg-gray-800/50 p-2 rounded">
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-white">{coupon.code}</p>
@@ -131,9 +133,9 @@ const OrderSummary = ({
       )}
 
       {/* Discount */}
-      {appliedCoupons && appliedCoupons.length > 0 && (
+      {safeAppliedCoupons.length > 0 && (
         <div className="flex justify-between text-sm text-green-400 pb-2">
-          <p>Total Discount ({appliedCoupons.length} coupon{appliedCoupons.length > 1 ? 's' : ''})</p>
+          <p>Total Discount ({safeAppliedCoupons.length} coupon{safeAppliedCoupons.length > 1 ? 's' : ''})</p>
           <p>- ₹{totalDiscountAmount.toFixed(2)}</p>
         </div>
       )}

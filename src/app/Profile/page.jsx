@@ -60,6 +60,26 @@ const ProfilePage = () => {
   // Collections states
   const [collections, setCollections] = useState([])
   const [standardCards, setStandardCards] = useState([])
+
+  const getDeliveredGamingCollectionKeys = (orders = []) => {
+    const deliveredKeys = new Set()
+
+    orders
+      .filter(order => order?.status === 'Delivered')
+      .forEach(order => {
+        ;(order.items || []).forEach(item => {
+          const collectionType = (item.collectionType || '').toLowerCase()
+          const isGamingLike = collectionType === 'gaming' || collectionType === 'swap-wrap' || item.itemType === 'collection'
+
+          if (!isGamingLike) return
+
+          if (item.collectionId) deliveredKeys.add(String(item.collectionId))
+          if (item.collectionName) deliveredKeys.add(String(item.collectionName).toLowerCase())
+        })
+      })
+
+    return deliveredKeys
+  }
   
   // Fetch user's owned collections and products from user profile
   useEffect(() => {
@@ -68,23 +88,41 @@ const ProfilePage = () => {
     const fetchUserCollectionsAndProducts = async () => {
       try {
         console.log('Fetching user profile with gaming collections...')
-        
-        // Fetch user profile which now includes gamingCollections and standardProducts
-        const response = await fetch(`${BACKEND_URL}/api/users/profile/${userId}`)
-        const data = await response.json()
-        
-        if (!data.success || !data.data) {
+
+        const [profileResponse, ordersResponse] = await Promise.all([
+          fetch(`${BACKEND_URL}/api/users/profile/${userId}`),
+          fetch(`${BACKEND_URL}/api/orders/userorders`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ userId })
+          })
+        ])
+
+        const profileData = await profileResponse.json()
+        const ordersData = await ordersResponse.json()
+
+        if (!profileData.success || !profileData.data) {
           console.error('Failed to fetch user profile')
           return
         }
-        
-        const profile = data.data
+
+        const profile = profileData.data
+        const deliveredGamingKeys = getDeliveredGamingCollectionKeys(ordersData.orders || [])
         console.log('User profile:', profile)
         console.log('Gaming collections:', profile.gamingCollections)
         console.log('Standard products:', profile.standardProducts)
+        console.log('Delivered gaming collection keys:', Array.from(deliveredGamingKeys))
         
         // Format gaming collections for SwipeCard
-        const gamingCollectionsForSwipe = (profile.gamingCollections || []).map(collection => {
+        const gamingCollectionsForSwipe = (profile.gamingCollections || [])
+          .filter(collection => {
+            const collectionId = collection.collectionId ? String(collection.collectionId) : ''
+            const collectionName = collection.collectionName ? String(collection.collectionName).toLowerCase() : ''
+            return deliveredGamingKeys.has(collectionId) || deliveredGamingKeys.has(collectionName)
+          })
+          .map(collection => {
           console.log(`Collection "${collection.collectionName}" has ${collection.cards?.length || 0} cards`)
           console.log('Cards:', collection.cards)
           

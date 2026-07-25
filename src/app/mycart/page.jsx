@@ -784,14 +784,11 @@ const CartPage = () => {
                         {item.isGamingCollection && (
                           <>
                             <span className="text-xs text-blue-400 bg-blue-400/20 px-2 py-0.5 rounded">
-                              {item.quantity} Card{item.quantity > 1 ? 's' : ''}
+                              {item.quantity} Cover{item.quantity > 1 ? 's' : ''}
                             </span>
-                            {item.plateQuantity > 0 && (
-                              <span className="text-xs text-purple-400 bg-purple-400/20 px-2 py-0.5 rounded">
-                                {item.plateQuantity} Plate{item.plateQuantity > 1 ? 's' : ''}
-                              </span>
-                            )}
-                           
+                            <span className="text-xs text-purple-400 bg-purple-400/20 px-2 py-0.5 rounded">
+                              {(item.quantity + (item.plateQuantity || 0))} Plate{(item.quantity + (item.plateQuantity || 0)) > 1 ? 's' : ''}
+                            </span>
                           </>
                         )}
                         {item.type === 'custom-design' && (
@@ -801,11 +798,18 @@ const CartPage = () => {
                         )}
                       </div>
                       
-                      {/* Show plate price breakdown for gaming collections */}
-                      {item.isGamingCollection && item.plateQuantity > 0 && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          {item.quantity} Backcover{item.quantity > 1 ? 's' : ''}+Plates @ ₹{item.price} | {item.plateQuantity} Only Plate{item.plateQuantity > 1 ? 's' : ''} @ ₹{item.platePrice}
-                        </p>
+                      {/* Show combo and extra plate price breakdown for gaming collections */}
+                      {item.isGamingCollection && (
+                        <>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {item.quantity} Combo{item.quantity > 1 ? 's' : ''} ({item.quantity} cover + {(item.quantity)} plate{(item.quantity + (item.plateQuantity || 0)) > 1 ? 's' : ''}) @ ₹{item.price}
+                          </p>
+                          {(item.plateQuantity || 0) > 0 && (
+                            <p className="text-xs text-gray-500">
+                              {(item.plateQuantity || 0)} Extra Plate{(item.plateQuantity || 0) > 1 ? 's' : ''} @ ₹{item.platePrice}
+                            </p>
+                          )}
+                        </>
                       )}
                       
                       <button
@@ -821,7 +825,7 @@ const CartPage = () => {
                     {/* Card Quantity Controls */}
                     <div className="flex flex-col gap-1 items-start sm:items-end">
                       {item.isGamingCollection && (
-                        <span className="text-xs text-gray-400 text-left sm:text-right">Backcover+Plates:</span>
+                        <span className="text-xs text-gray-400 text-left sm:text-right">Combo </span>
                       )}
                       <div className="flex items-center gap-2 justify-start sm:justify-end">
                         <button
@@ -840,10 +844,10 @@ const CartPage = () => {
                       </div>
                     </div>
 
-                    {/* Plate Quantity Controls (Gaming Collections Only) */}
+                    {/* Extra Plate Quantity Controls (Gaming Collections Only) */}
                     {item.isGamingCollection && (
                       <div className="flex flex-col gap-1 mt-1 items-start sm:items-end">
-                        <span className="text-xs text-gray-400 text-left sm:text-right">Only Plates:</span>
+                        <span className="text-xs text-gray-400 text-left sm:text-right">Extra Plates:</span>
                         <div className="flex items-center gap-2 justify-start sm:justify-end">
                           <button
                             className="w-8 h-8 cursor-pointer bg-gray-800 hover:bg-gray-700 rounded"
@@ -944,10 +948,10 @@ const CartPage = () => {
 
                     {/* Price */}
                     <div className="text-right mt-2">
-                      <p className="text-xs text-blue-400">+₹{(item.bundleTotalPrice || (item.price * item.quantity)).toFixed(2)} Combo</p>
+                      <p className="text-xs text-blue-400">+₹{(item.bundleTotalPrice || (item.price * item.quantity)).toFixed(2)} combo{item.quantity > 1 ? 's' : ''}</p>
                       {item.isGamingCollection && item.plateQuantity > 0 && (
                         <p className="text-xs text-blue-400">
-                          +₹{item.plateTotalPrice.toFixed(2)} plates
+                          +₹{item.plateTotalPrice.toFixed(2)} only plates
                         </p>
                       )}
                       <p className="text-sm text-gray-400">
