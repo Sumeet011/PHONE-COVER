@@ -627,7 +627,7 @@ const Specific_Collection = () => {
                 </button>
 
                 <div
-                  className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                  className={`overflow-hidden transition-all cursor-pointer duration-500 ease-in-out  ${
                     activeSection === section
                       ? "max-h-40 opacity-100 mt-3"
                       : "max-h-0 opacity-0"

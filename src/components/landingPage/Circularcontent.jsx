@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import CircularGallery from "@/components/homecomponents/CircularGalary";
+import GamingSlider from '../homecomponents/GamingSlider' 
 import localFont from "next/font/local";
 const JersyFont = localFont({
   src: "../../../public/fonts/jersey-10-latin-400-normal.woff2",
@@ -71,15 +71,8 @@ const Circularcontent = () => {
 
       </div>
       <div className="w-full flex justify-center items-center pb-20 ">
-        <div className="w-full relative h-[330px] sm:h-[400px] md:h-[500px] -mt-20 -mb-30">
-          <CircularGallery
-          items={images.length > 0 ? images : defaultItems}
-            bend={3}
-            textColor="#ffffff"
-            borderRadius={0.05}
-            scrollEase={0.1}
-            scrollSpeed={1}
-          />
+        <div className="w-full relative h-[330px] sm:h-[400px] md:h-[500px] -mt-30 md:-mt-15 md:-mb-30">
+          <GamingSlider autoScrollInterval={2000}/>
         </div>
       </div>
     </>
