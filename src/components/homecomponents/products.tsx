@@ -255,7 +255,7 @@ export default function HorizontalScrollableCards() {
 
   return (
     <div className="w-full text-white">
-      <div className="flex items-center justify-center mb-4">
+      <div className="flex items-center justify-center mb-8">
         <div className="flex items-center justify-center">
           <h1
             className={`

@@ -9,6 +9,7 @@ import { useParams, useRouter } from "next/navigation";
 import { BuyNowButton } from "@/components/ui/buy-now-button";
 import { ToastContainer, toast } from "react-toastify";
 import config from "@/config";
+import Footer from "@/components/homecomponents/Footer";
 
 
 const JersyFont = localFont({
@@ -439,7 +440,7 @@ const Specific_Collection = () => {
   }, [selectedBrand, selectedModel, quantity, extraPlates, collection, collectionId, currentProduct, collectionInfo, BACKEND_URL, isTwoOptionCollection]);
 
   // NOW CONDITIONAL RETURNS AFTER ALL HOOKS
-  if (loading) {
+  {/*if (loading) {
     return (
       <>
         <Navbar />
@@ -449,8 +450,9 @@ const Specific_Collection = () => {
       </>
     );
   }
+    /*}
 
-  if (!loading && products.length === 0) {
+  {/*if (!loading && products.length === 0) {
     return (
       <>
         <Navbar />
@@ -462,10 +464,21 @@ const Specific_Collection = () => {
       </>
     );
   }
+    */}
 
   // MAIN RENDER
   return (
-    <>
+    
+      <>
+      <Navbar />
+      <div className="w-full flex text-4xl md:text-6xl lg:text-8xl justify-center items-center h-screen">
+      
+      <h1 className={`${JersyFont.className} text-[#9AE600]` }> COMING SOON, STAY TUNED !</h1>
+      </div>
+
+      <Footer></Footer>
+
+      {/*
       <Navbar />
 
       <div className="pt-10 sm:pt-20 " style={{ overscrollBehaviorX: 'none', touchAction: 'pan-y pinch-zoom' }}></div>
@@ -477,7 +490,7 @@ const Specific_Collection = () => {
           </h1>
         </div>
 
-      {/* Circular Gallery */}
+      // Circular Gallery 
       <div className="w-full flex justify-center items-center pb-10">
         <div className="w-full relative h-[350px] sm:h-[400px] md:h-[500px] lg:h-[600px]">
           <CircularGallery
@@ -492,7 +505,7 @@ const Specific_Collection = () => {
         </div>
       </div>
 
-      {/* Card Info Section */}
+      // Card Info Section 
       <div className="max-w-4xl sm:max-w-full mx-auto px-4 py-8 space-y-1 mb-32 sm:mb-28 md:mb-24">
         <div
           className={`bg-gray-900/50 rounded-lg p-6 border border-gray-800 relative overflow-hidden transition-all duration-300 ${
@@ -585,7 +598,7 @@ const Specific_Collection = () => {
           </div>
         </div>
 
-        {/* About Section */}
+        // About Section 
         <div className="bg-gray-900/30 rounded-lg p-6 border border-gray-800 relative overflow-hidden
                 grid grid-cols-2 gap-12">
 
@@ -609,7 +622,7 @@ const Specific_Collection = () => {
 
 
 
-        {/* Collapsible Sections */}
+        // Collapsible Sections 
         <div className="border-t border-gray-800">
           {["Shipping Info", "Installation Guide"].map(
             (section) => (
@@ -654,7 +667,7 @@ const Specific_Collection = () => {
         </div>
       </div>
 
-      {/* Mobile Add to Cart Trigger */}
+      // Mobile Add to Cart Trigger 
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-black/95 border-t border-gray-800 z-50 px-3 py-3">
         <button
           type="button"
@@ -665,7 +678,7 @@ const Specific_Collection = () => {
         </button>
       </div>
 
-      {/* Mobile Controls Drawer */}
+      // Mobile Controls Drawer 
       {isMobileControlsOpen && (
         <div className="md:hidden fixed inset-0 z-[60]">
           <div
@@ -753,10 +766,10 @@ const Specific_Collection = () => {
         </div>
       )}
 
-      {/* Bottom Fixed Controls (Desktop/Tablet) */}
+      // Bottom Fixed Controls (Desktop/Tablet) 
       <div className="hidden md:block fixed bottom-0 left-0 right-0 bg-black border-t border-gray-800 z-50 w-full">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center lg:gap-4 px-2 sm:px-4 lg:px-6 py-1 mt--3 lg:py-2">
-          {/* Controls Group */}
+          // Controls Group 
           <div className="w-full flex items-center gap-2 flex-wrap lg:flex-nowrap justify-center lg:justify-start">
             <DropdownButton
               className="w-full lg:w-auto min-w-[120px] sm:min-w-[140px] mt-1"
@@ -815,7 +828,7 @@ const Specific_Collection = () => {
             )}
           </div>
 
-          {/* Buy Button */}
+        // Buy Button 
           <div className="flex justify-center lg:justify-end lg:flex-shrink-0">
             <BuyNowButton
               className="w-full sm:w-auto min-w-[140px] h-10 sm:h-9"
@@ -826,7 +839,10 @@ const Specific_Collection = () => {
         </div>
       </div>
       <ToastContainer />
+      */}
+          
     </>
+    
   );
 };
 

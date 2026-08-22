@@ -60,19 +60,19 @@ const Circularcontent = () => {
   }, [BACKEND_URL]);
   return (
     <>
-      <div className="w-full flex justify-center items-center">
-        <div className="w-full flex justify-center">
+      <div className="w-full flex justify-center items-center mt-10 -mb-45 min-[600px]:-mb-35 min-[1100px]:-mb-20">
+        <div className="w-full flex justify-center  ">
   <h1
-    className={`${JersyFont.className} text-[#9AE600] text-3xl min-[290px]:text-5xl sm:text-7xl lg:text-8xl text-center pt-20`}
+    className={`${JersyFont.className} text-[#9AE600] text-3xl min-[290px]:text-5xl sm:text-7xl lg:text-8xl text-center pt-15  `}
   >
     {title}
   </h1>
 </div>
 
       </div>
-      <div className="w-full flex justify-center items-center pb-20 ">
-        <div className="w-full relative h-[330px] sm:h-[400px] md:h-[500px] -mt-30 md:-mt-15 md:-mb-30">
-          <GamingSlider autoScrollInterval={2000}/>
+      <div className="w-full flex justify-center items-center pb-20 mb-55 min-[600px]:mb-65 min-[700px]:mb-30 min-[1100px]:mb-40 ">
+        <div className="w-full relative h-[330px] sm:h-[400px] md:h-[500px] ">
+          <GamingSlider autoScrollInterval={0}/>
         </div>
       </div>
     </>

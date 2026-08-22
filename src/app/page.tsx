@@ -27,7 +27,7 @@ const page = () => {
       <DrinksPage />
       <Circularcontent/>
       <HorizontalScrollableCards />
-      <Leaderboard/>
+      {/*<Leaderboard/>*/}
       <Review/>
       <Footer />
       </div>
