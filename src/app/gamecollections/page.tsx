@@ -257,6 +257,8 @@ export default function GameCollections() {
     );
   };
 
+  {/*
+
   if (loading) {
     return (
       <div className="w-full text-white min-h-screen">
@@ -268,27 +270,45 @@ export default function GameCollections() {
     );
   }
 
-  return (
-    <div className="min-h-screen flex flex-col text-white">
-    <Navbar />
+    */}
 
-    <main className="flex-1">
-        <div className="pt-25" />
 
-        {groups.length === 0 ? (
+      return (
+    <>
+      <Navbar />
+
+      <div className="w-full flex text-4xl md:text-6xl lg:text-8xl justify-center items-center h-screen">
+        <h1 className={`${JersyFont.className} text-[#9AE600]`}>
+          COMING SOON, STAY TUNED!
+        </h1>
+      </div>
+
+      <Footer />
+
+      {/*
+      <div className="min-h-screen flex flex-col text-white">
+        <Navbar />
+
+        <main className="flex-1">
+          <div className="pt-25" />
+
+          {groups.length === 0 ? (
             <div className="flex justify-center items-center h-64">
-                <p className="text-xl text-gray-400">
-                    No groups found
-                </p>
+              <p className="text-xl text-gray-400">
+                No groups found
+              </p>
             </div>
-        ) : (
+          ) : (
             groups.map((group, index) =>
-                renderGroupSection(group, index)
+              renderGroupSection(group, index)
             )
-        )}
-    </main>
+          )}
+        </main>
 
-    <Footer />
-</div>
+        <Footer />
+      </div>
+      */}
+    </>
   );
 }
+  
