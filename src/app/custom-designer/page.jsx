@@ -569,21 +569,21 @@ const maxPlatesOnly = Math.min(
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-12 mt-20">
+      <div className="container mx-auto mt-20 min-w-0 px-3 py-8 sm:px-4 sm:py-12">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className={`${JersyFont.className} text-4xl md:text-6xl  mb-4`}>
+        <div className="mb-8 text-center sm:mb-12">
+          <h1 className={`${JersyFont.className} mb-4 text-4xl sm:text-5xl md:text-6xl`}>
             Custom Design 
           </h1>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+          <p className="mx-auto max-w-2xl text-base text-gray-400 sm:text-lg">
             Upload your own image and create a personalized phone wrap. Adjust
             the position, size, and rotation to get it perfect.
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
+        <div className="mx-auto grid min-w-0 max-w-7xl gap-6 lg:grid-cols-2 lg:gap-8">
           {/* Left Side - Phone Preview */}
-          <div className="bg-[#131313] rounded-3xl p-8 border border-gray-800">
+          <div className="min-w-0 rounded-3xl border border-gray-800 bg-[#131313] p-4 sm:p-6 lg:p-8">
             <div className="mb-6">
               <h2 className="text-2xl font-bold mb-4">Preview</h2>
               
@@ -696,12 +696,13 @@ const maxPlatesOnly = Math.min(
             </div>
 
             {/* Phone Preview Container */}
-            <div className="relative flex items-center justify-center min-h-[600px] bg-white p-15 rounded-2xl overflow-visible">
+            <div className="relative flex min-h-[430px] items-center justify-center overflow-hidden rounded-2xl bg-white p-3 sm:min-h-[600px] sm:p-6 lg:p-8">
               <div
                 id="phone-preview"
-                className="relative w-[300px] h-[640px] rounded-[25px] "
+                className="relative aspect-[300/640] w-full max-w-[300px] rounded-[25px]"
                 
               >
+                <div className="absolute left-1/2 top-1/2 h-[640px] w-[300px] -translate-x-1/2 -translate-y-1/2 scale-[0.78] rounded-[25px] min-[375px]:scale-[0.88] min-[420px]:scale-100 sm:scale-100">
                 {/* Phone Frame Background Image - z-index: 1 */}
                 <img
                   src={phoneConfig.frame.src}
@@ -748,6 +749,7 @@ const maxPlatesOnly = Math.min(
                     className="w-full h-full object-cover "
                   />
                 </div>
+                </div>
               </div>
             </div>
 
@@ -767,9 +769,9 @@ const maxPlatesOnly = Math.min(
           </div>
 
           {/* Right Side - Controls */}
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             {/* Upload Section */}
-            <div className="bg-[#131313] rounded-3xl p-8 border border-gray-800">
+            <div className="rounded-3xl border border-gray-800 bg-[#131313] p-4 sm:p-6 lg:p-8">
               <h2 className="text-2xl font-bold mb-6">Upload Your Design</h2>
 
               <input
@@ -811,7 +813,7 @@ const maxPlatesOnly = Math.min(
             </div>
 
             {/* Transform Controls */}
-            <div className="bg-[#131313] rounded-3xl p-8 border border-gray-800">
+            <div className="rounded-3xl border border-gray-800 bg-[#131313] p-4 sm:p-6 lg:p-8">
               <h2 className="text-2xl font-bold mb-6">Adjust Design</h2>
 
               {/* Zoom Controls */}
@@ -926,7 +928,7 @@ const maxPlatesOnly = Math.min(
             </div>
 
             {/* Quantity Selection */}
-            <div className="bg-[#131313] rounded-3xl p-8 border border-gray-800">
+            <div className="rounded-3xl border border-gray-800 bg-[#131313] p-4 sm:p-6 lg:p-8">
               <h2 className="text-2xl font-bold mb-6">Select Quantity</h2>
               
               <div className="space-y-4">
@@ -977,7 +979,7 @@ const maxPlatesOnly = Math.min(
             </div>
 
             {/* Actions */}
-            <div className="bg-[#131313] rounded-3xl p-8 border border-gray-800">
+            <div className="rounded-3xl border border-gray-800 bg-[#131313] p-4 sm:p-6 lg:p-8">
               <h2 className="text-2xl font-bold mb-6">Finalize Design</h2>
 
               {/* Status Message */}
@@ -1057,8 +1059,8 @@ const maxPlatesOnly = Math.min(
         </div>
 
         {/* Features Section */}
-        <div className="mt-16 grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          <div className="bg-[#131313] rounded-2xl p-6 border border-gray-800 text-center">
+        <div className="mx-auto mt-12 grid max-w-5xl gap-4 sm:mt-16 sm:gap-6 md:grid-cols-3">
+          <div className="rounded-2xl border border-gray-800 bg-[#131313] p-5 text-center sm:p-6">
             <div className="w-12 h-12 bg-[#9AE600]/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Upload className="w-6 h-6 text-[#9AE600]" />
             </div>
@@ -1068,7 +1070,7 @@ const maxPlatesOnly = Math.min(
             </p>
           </div>
 
-          <div className="bg-[#131313] rounded-2xl p-6 border border-gray-800 text-center">
+          <div className="rounded-2xl border border-gray-800 bg-[#131313] p-5 text-center sm:p-6">
             <div className="w-12 h-12 bg-[#9AE600]/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Move className="w-6 h-6 text-[#9AE600]" />
             </div>
@@ -1078,7 +1080,7 @@ const maxPlatesOnly = Math.min(
             </p>
           </div>
 
-          <div className="bg-[#131313] rounded-2xl p-6 border border-gray-800 text-center">
+          <div className="rounded-2xl border border-gray-800 bg-[#131313] p-5 text-center sm:p-6">
             <div className="w-12 h-12 bg-[#9AE600]/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Download className="w-6 h-6 text-[#9AE600]" />
             </div>
