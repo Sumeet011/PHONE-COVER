@@ -581,7 +581,7 @@ const maxPlatesOnly = Math.min(
           </p>
         </div>
 
-        <div className="mx-auto grid min-w-0 max-w-7xl gap-6 lg:grid-cols-2 lg:gap-8">
+        <div className="mx-auto grid min-w-0 max-w-7xl gap-6 xl:grid-cols-2 xl:gap-8">
           {/* Left Side - Phone Preview */}
           <div className="min-w-0 rounded-3xl border border-gray-800 bg-[#131313] p-4 sm:p-6 lg:p-8">
             <div className="mb-6">

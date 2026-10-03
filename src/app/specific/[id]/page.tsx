@@ -34,6 +34,7 @@ type Drink = Product & {
 
 type AddOnProduct = {
   id: string;
+  backendId: string;
   name: string;
   subtitle: string;
   details: string[];
@@ -213,39 +214,6 @@ function Banners(){
   );
 }
 
-const addOnProducts: AddOnProduct[] = [
-  {
-    id: "addon-red-crossbody-lanyard-cord",
-    name: "Red Crossbody Phone Lanyard - Cord",
-    subtitle: "Soft cord finish with polished metal hooks for daily carry.",
-    details: ["Adjustable crossbody fit", "Quick-release clip", "Matte hardware"],
-    colors: ["#b80f22", "#243548", "#8f7751", "#69885d", "#dd8a3e"],
-    price: 1199,
-    oldPrice: 1699,
-    image: "/images/mobile.webp",
-  },
-  {
-    id: "addon-beige-green-crossbody-lanyard-cord",
-    name: "Beige-Green Crossbody Phone Lanyard - Cord",
-    subtitle: "Neutral woven cord with warm accents and low-profile clips.",
-    details: ["Lightweight build", "Comfort weave", "Everyday styling"],
-    colors: ["#b6aa8a", "#234f39", "#8a4d27", "#f0b35d"],
-    price: 1199,
-    oldPrice: 1699,
-    image: "/images/card2.webp",
-  },
-  {
-    id: "addon-grey-utility-crossbody-strap",
-    name: "Grey Crossbody Utility Phone Lanyard - Strap",
-    subtitle: "Utility strap with subtle contrast hardware and durable webbing.",
-    details: ["Utility-grade strap", "Fast clip-on system", "Reinforced edge finish"],
-    colors: ["#b9b9b9", "#5e754e", "#d18b1b", "#2d93c4", "#a71c31", "#161616"],
-    price: 999,
-    oldPrice: 1499,
-    image: "/images/card3.webp",
-  },
-];
-
 const ProductDetails = () => {
   const router = useRouter();
   const params = useParams();
@@ -277,6 +245,27 @@ const ProductDetails = () => {
   const [selectedSuggested, setSelectedSuggested] = useState<Set<string>>(new Set());
   const [addingToCart, setAddingToCart] = useState(false);
   const [addingAddOnId, setAddingAddOnId] = useState<string | null>(null);
+
+  const addOnProducts = useMemo<AddOnProduct[]>(() => (
+    suggestedProducts
+      .map((suggestedProduct, index) => {
+        const backendId = String(suggestedProduct._id || suggestedProduct.id || "");
+        if (!backendId) return null;
+
+        return {
+          id: backendId,
+          backendId,
+          name: suggestedProduct.name,
+          subtitle: suggestedProduct.description || "A useful add-on for your everyday carry.",
+          details: ["Ready to add to your cart"],
+          colors: ["#b8f23d"],
+          price: Number(suggestedProduct.price) || 0,
+          oldPrice: Number(suggestedProduct.oldPrice) || Number(suggestedProduct.price) || 0,
+          image: suggestedProduct.image || `/images/card${(index % 3) + 1}.webp`,
+        };
+      })
+      .filter((addOn): addOn is AddOnProduct => addOn !== null)
+  ), [suggestedProducts]);
 
   // Phone brands state
   const [phonebrand, setPhonebrand] = useState<BrandOption[]>([]);
@@ -854,12 +843,12 @@ const ProductDetails = () => {
         },
         body: JSON.stringify({
           userId,
-          type: 'product',
-          productId: addOnProduct.id,
-          productRef: 'Product',
+          type: 'suggested',
+          productId: addOnProduct.backendId,
+          productRef: 'SuggestedProduct',
           productName: addOnProduct.name,
           collectionName: addOnProduct.name,
-          collectionType: 'accessory',
+          collectionType: 'accessories',
           productOption: 'accessory',
           price: addOnProduct.price,
           quantity: 1,
@@ -1335,7 +1324,7 @@ const ProductDetails = () => {
 
             {/* Add On Accessories */}
             <section className="mt-6 rounded-3xl border border-white/10 bg-[#11110f] p-4 sm:p-5 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
-              <div className="flex items-end justify-between gap-4 mb-4">
+              <div className="mb-3 flex items-end justify-between gap-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.3em] text-lime-400/90">Add on accessories</p>
                   <h2 className="mt-1 text-xl sm:text-2xl font-semibold text-white">Bundle it with a matching strap</h2>
@@ -1345,73 +1334,45 @@ const ProductDetails = () => {
                 </p>
               </div>
 
-              <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
+              <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#161412]">
                 {addOnProducts.map((addOn) => (
                   <article
                     key={addOn.id}
-                    className="min-w-[320px] sm:min-w-[360px] snap-start rounded-3xl border border-white/10 bg-[#161412] p-4 transition-transform duration-300 hover:-translate-y-1 hover:border-lime-400/40"
+                    className="group flex min-w-0 items-center gap-2 border-b border-white/10 px-2.5 py-3 last:border-b-0 transition-colors hover:bg-white/[0.035] sm:gap-3 sm:px-3"
                   >
-                    <div className="flex gap-4 items-start">
-                      <div className="w-20 h-20 shrink-0 rounded-2xl bg-gradient-to-br from-white/95 to-white/70 p-2 shadow-inner">
-                        <img
-                          src={addOn.image}
-                          alt={addOn.name}
-                          className="w-full h-full object-contain"
-                        />
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border border-white/50 text-[11px] text-black transition-colors group-hover:border-lime-400 group-hover:bg-lime-400">
+                        +
+                      </span>
+                      <div className="h-12 w-12 shrink-0 rounded-xl bg-white p-1.5 shadow-inner sm:h-14 sm:w-14">
+                        <img src={addOn.image} alt={addOn.name} className="h-full w-full object-contain" />
                       </div>
 
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-base font-semibold text-white leading-tight">
-                          {addOn.name}
-                        </h3>
-                        <p className="mt-1 text-sm text-gray-400 leading-relaxed">
-                          {addOn.subtitle}
-                        </p>
-
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {addOn.details.map((detail) => (
-                            <span
-                              key={detail}
-                              className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] uppercase tracking-wide text-gray-300"
-                            >
-                              {detail}
-                            </span>
+                      <div className="min-w-0 flex-1 self-stretch py-0.5">
+                        <h3 className="truncate text-sm font-medium leading-5 text-white sm:text-base">{addOn.name}</h3>
+                        <p className="hidden truncate text-xs leading-5 text-gray-400 sm:block">{addOn.subtitle}</p>
+                        <div className="mt-1 flex items-center gap-1.5">
+                          {addOn.colors.slice(0, 5).map((color) => (
+                            <span key={color} className="h-2.5 w-2.5 rounded-full border border-white/20" style={{ backgroundColor: color }} />
                           ))}
+                          <span className="ml-1 hidden text-[10px] text-gray-500 md:inline">{addOn.details[0]}</span>
                         </div>
+                      </div>
 
-                        <div className="mt-3 flex items-center gap-2">
-                          {addOn.colors.map((color) => (
-                            <span
-                              key={color}
-                              className="h-4 w-4 rounded-full border border-white/20 shadow-sm"
-                              style={{ backgroundColor: color }}
-                            />
-                          ))}
+                      <div className="shrink-0 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="text-sm font-bold text-white sm:text-base">₹{addOn.price}</span>
+                          <span className="hidden text-xs text-gray-500 line-through xs:inline sm:text-sm">₹{addOn.oldPrice}</span>
                         </div>
+                        <span className="hidden text-[10px] uppercase tracking-wide text-lime-400/80 sm:block">Save on bundle</span>
                       </div>
 
                       <button
                         onClick={() => handleAddOnAddToCart(addOn)}
                         disabled={addingAddOnId === addOn.id}
-                        className="shrink-0 rounded-full border border-lime-400/80 px-4 py-2 text-sm font-semibold text-lime-300 transition-colors hover:bg-lime-400 hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
+                        className="shrink-0 rounded-full border border-lime-400/80 px-2.5 py-1.5 text-xs font-semibold text-lime-300 transition-colors hover:bg-lime-400 hover:text-black disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:text-sm"
                       >
                         {addingAddOnId === addOn.id ? "Adding..." : "+ Add"}
                       </button>
-                    </div>
-
-                    <div className="mt-4 flex items-end justify-between gap-3 border-t border-white/10 pt-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-white">₹{addOn.price}</span>
-                          <span className="text-sm text-gray-500 line-through">₹{addOn.oldPrice}</span>
-                        </div>
-                        <p className="text-xs text-lime-400/80">Ready to bundle with the product above</p>
-                      </div>
-
-                      <div className="rounded-full border border-lime-400/30 bg-lime-400/10 px-3 py-1 text-[11px] uppercase tracking-[0.25em] text-lime-300">
-                        Quick add
-                      </div>
-                    </div>
                   </article>
                 ))}
               </div>

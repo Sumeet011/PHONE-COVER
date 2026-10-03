@@ -59,14 +59,14 @@ const CardCarouselParent = () => {
 
   const handleOnClick = () => {
     
-    router.push('/gamecollections');
+    router.push('/All');
   };
 
   return (
     <div className="relative">
       {/* Background mobile image */}
       <div className="absolute inset-0 flex  justify-center z-[-1]">
-        <img
+        <imgz
           src="/images/mobile.webp"
           alt="Mobile background"
           className="h-[580px] w-auto opacity-50 mt-4 mr-3"

@@ -25,7 +25,7 @@ const page = () => {
       <HeroContent />
       <CardCarouselParent />
       <DrinksPage />
-      <Circularcontent/>
+      {/*<Circularcontent/>*/}
       <HorizontalScrollableCards />
       {/*<Leaderboard/>*/}
       <Review/>
