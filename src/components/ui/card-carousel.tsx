@@ -23,6 +23,7 @@ interface CarouselProps {
   autoplayDelay?: number
   showPagination?: boolean
   showNavigation?: boolean
+  onImageClick?: () => void
 }
 
 export const CardCarousel: React.FC<CarouselProps> = ({
@@ -30,6 +31,7 @@ export const CardCarousel: React.FC<CarouselProps> = ({
   autoplayDelay = 1500,
   showPagination = true,
   showNavigation = true,
+  onImageClick,
 }) => {
   const css = `
   .swiper {
@@ -94,7 +96,7 @@ export const CardCarousel: React.FC<CarouselProps> = ({
                 modules={[EffectCoverflow, Autoplay, Pagination, Navigation]}
               >
                 {images.map((image, index) => (
-                  <SwiperSlide key={index}>
+                  <SwiperSlide key={index} onClick={onImageClick}>
                     <div className="size-full rounded-3xl">
                       <Image
                         src={image.src}
@@ -107,7 +109,7 @@ export const CardCarousel: React.FC<CarouselProps> = ({
                   </SwiperSlide>
                 ))}
                 {images.map((image, index) => (
-                  <SwiperSlide key={index}>
+                  <SwiperSlide key={index} onClick={onImageClick}>
                     <div className="size-full rounded-3xl">
                       <Image
                         src={image.src}

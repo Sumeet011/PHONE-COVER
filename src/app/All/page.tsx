@@ -134,10 +134,13 @@ const ProductsContent = () => {
   const [collectionName, setCollectionName] = useState<string>('');
   const searchParams = useSearchParams();
   const collectionId = searchParams.get('collection');
+  const productType = searchParams.get('type');
 
   useEffect(() => {
     // Cache key for localStorage
-    const cacheKey = collectionId ? `products_${collectionId}` : 'products_all_non_gaming';
+    const cacheKey = collectionId
+      ? `products_${collectionId}_${productType || 'all'}`
+      : `products_all_${productType || 'all'}`;
     const cacheTimeKey = `${cacheKey}_timestamp`;
     const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
@@ -223,16 +226,17 @@ const ProductsContent = () => {
           const allCollections = collectionsData.items || [];
           const allProducts = productsData.items || [];
           
-          // Filter to get only non-gaming collections
-          const nonGamingCollections = allCollections.filter(
-            (col: any) => col.type !== 'gaming'
-          );
+          // Direct /All shows every collection. A type query narrows the result
+          // for links coming from a specific home section.
+          const collectionsToInclude = productType
+            ? allCollections.filter((col: any) => col.type === productType)
+            : allCollections;
           
           // Create maps for efficient lookup
           const productToCollectionMap = new Map<string, any>();
           const productIdSet = new Set<string>();
           
-          nonGamingCollections.forEach((collection: any) => {
+          collectionsToInclude.forEach((collection: any) => {
             const productIds = collection.products || collection.Products || [];
             productIds.forEach((productId: any) => {
               const id = typeof productId === 'string' ? productId : (productId._id || productId.id);
@@ -254,6 +258,13 @@ const ProductsContent = () => {
             }));
           
           collectionTitle = '';
+        }
+
+        if (productType) {
+          productsToDisplay = productsToDisplay.filter((product: any) => {
+            const collectionType = (selectedCollection || product._collection)?.type;
+            return (product.type || collectionType) === productType;
+          });
         }
 
         // Helper function to get display price (coverprice)
@@ -319,7 +330,7 @@ const ProductsContent = () => {
     };
 
     fetchData();
-  }, [collectionId]);
+  }, [collectionId, productType]);
 
   // Apply filters whenever activeFilters change
   const applyFilters = useCallback(() => {

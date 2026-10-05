@@ -58,8 +58,7 @@ const CardCarouselParent = () => {
   }, [BACKEND_URL]);
 
   const handleOnClick = () => {
-    
-    router.push('/All');
+    router.push('/All?type=swap-wrap');
   };
 
   return (
@@ -75,7 +74,7 @@ const CardCarouselParent = () => {
 
       {/* Foreground content */}
       <div className="relative z-10 ">
-        <CardCarousel images={images} showPagination={false} />
+        <CardCarousel images={images} showPagination={false} onImageClick={handleOnClick} />
       </div>
 
       {/*/Buy Now Button */}
