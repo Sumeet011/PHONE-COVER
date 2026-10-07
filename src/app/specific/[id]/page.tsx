@@ -1340,9 +1340,7 @@ const ProductDetails = () => {
                     key={addOn.id}
                     className="group flex min-w-0 items-center gap-2 border-b border-white/10 px-2.5 py-3 last:border-b-0 transition-colors hover:bg-white/[0.035] sm:gap-3 sm:px-3"
                   >
-                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border border-white/50 text-[11px] text-black transition-colors group-hover:border-lime-400 group-hover:bg-lime-400">
-                        +
-                      </span>
+                      
                       <div className="h-12 w-12 shrink-0 rounded-xl bg-white p-1.5 shadow-inner sm:h-14 sm:w-14">
                         <img src={addOn.image} alt={addOn.name} className="h-full w-full object-contain" />
                       </div>
@@ -1378,27 +1376,7 @@ const ProductDetails = () => {
               </div>
             </section>
 
-            {/* Suggested Products Section */}
-            {suggestedProducts.length > 0 && (
-              <div className="mt-6 space-y-2">
-                {suggestedProducts.map((product) => (
-                  <div
-                    key={product._id}
-                    className="flex items-center gap-3"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedSuggested.has(product._id)}
-                      onChange={() => toggleSuggestedProduct(product._id)}
-                      className="w-5 h-5 accent-lime-400 cursor-pointer"
-                    />
-                    <label className="text-sm text-gray-300 cursor-pointer" onClick={() => toggleSuggestedProduct(product._id)}>
-                      {product.name}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            )}
+            
 
             {/* Description */}
             <div className="space-y-3">
